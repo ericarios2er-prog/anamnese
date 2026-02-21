@@ -11,12 +11,15 @@
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-       const firebaseConfig = {
-  apiKey:"AIzaSyA0JuzYmLbJ9HCPXpfxGWQX19NsZenXO0s",
-  authDomain:"meu-consultorio-568f0.firebaseapp.com",
+        --- CONFIGURAÇÃO FIREBASE ---
+// COLA AQUI OS DADOS QUE COPIASTE DO TEU ECRÃ DO FIREBASE (OPÇÃO "CONFIG")
+  const firebaseConfig = {
+  apiKey: "AIzaSyA0JuzYmLbJ9HCPXpfxGWQX19NsZenXO0s",
+  authDomain: "meu-consultorio-568f0.firebaseapp.com",
   projectId: "meu-consultorio-568f0",
-  storageBucket:  "meu-consultorio-568f0.firebasestorage.app",
+  storageBucket: "meu-consultorio-568f0.firebasestorage.app",
   messagingSenderId: "121957844615",
+  appId: "1:121957844615:web:bdd21d6b2507acfb451a22",
 };
 
         const app = initializeApp(firebaseConfig);
@@ -478,3 +481,4 @@
     </div>
   );
 }
+
