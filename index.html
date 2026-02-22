@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prontuário de Anamnese Confidencial</title>
+    <title>Prontuário de Anamnese - Confidencial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Versão correta do Lucide para React via CDN -->
+    <script src="https://unpkg.com/lucide-react"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @media print { .no-print { display: none; } }
     </style>
 </head>
@@ -38,24 +41,25 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // Disponibiliza para o React via window
         window.FB = { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, signInAnonymously, onAuthStateChanged };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+        
+        // Acessando os ícones corretamente do objeto global LucideReact
         const { 
             Lock, ClipboardList, LogOut, Send, ChevronLeft, ChevronRight, 
-            CheckCircle2, User, Heart, Brain, Baby, Smile, Phone 
-        } = lucide;
+            CheckCircle2, User, Heart, Brain, Baby, Smile, Phone, Shield, Calendar 
+        } = lucideReact;
 
         // --- CONFIGURAÇÃO ---
-        const TERAPEUTA_WHATSAPP = "5571999466269"; // COLOQUE SEU NÚMERO AQUI (DDI + DDD + NUMERO)
+        const TERAPEUTA_WHATSAPP = "5500000000000"; // COLOQUE SEU NÚMERO AQUI
         const APP_ID = "meu-consultorio-568f0";
 
         const App = () => {
             const [user, setUser] = useState(null);
-            const [view, setView] = useState('form'); // 'form' | 'login' | 'admin'
+            const [view, setView] = useState('form'); 
             const [step, setStep] = useState(0);
             const [formData, setFormData] = useState({});
             const [responses, setResponses] = useState([]);
@@ -102,7 +106,7 @@
             };
 
             const submitForm = async () => {
-                if (!formData.nome) return alert("Por favor, preencha pelo menos o seu nome.");
+                if (!formData.nome) return alert("Por favor, preencha o seu nome completo.");
                 setIsSubmitting(true);
                 try {
                     const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
@@ -112,13 +116,12 @@
                         uid: user.uid
                     });
                     
-                    // Enviar para WhatsApp
-                    const msg = window.encodeURIComponent(`Olá! Acabei de finalizar o preenchimento da minha ficha de anamnese.\n\nNome: ${formData.nome}`);
+                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher a minha ficha de anamnese sistêmica.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${TERAPEUTA_WHATSAPP}?text=${msg}`, '_blank');
                     
                     setStep(99);
                 } catch (err) {
-                    alert("Erro ao salvar. Verifique sua conexão.");
+                    alert("Erro ao enviar. Verifique sua internet.");
                 } finally {
                     setIsSubmitting(false);
                 }
@@ -126,7 +129,7 @@
 
             const handleAdminLogin = async () => {
                 if (isFirstRun) {
-                    if (adminPasswordInput.length < 4) return alert("A senha deve ter no mínimo 4 dígitos.");
+                    if (adminPasswordInput.length < 4) return alert("Mínimo 4 dígitos.");
                     const configRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'config', 'admin');
                     await setDoc(configRef, { password: adminPasswordInput });
                     setDbAdminPassword(adminPasswordInput);
@@ -138,31 +141,43 @@
                 }
             };
 
-            // Componentes UI
-            const FieldLabel = ({ children }) => <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{children}</label>;
+            // --- COMPONENTES INTERNOS ---
+            const Label = ({ children }) => <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{children}</label>;
             
-            const Input = ({ label, field, type = "text", placeholder = "" }) => (
-                <div className="mb-4">
-                    <FieldLabel>{label}</FieldLabel>
+            const InputField = ({ label, field, type = "text", placeholder = "" }) => (
+                <div className="mb-5">
+                    <Label>{label}</Label>
                     <input 
                         type={type} 
                         placeholder={placeholder}
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700"
                         value={formData[field] || ''}
                         onChange={e => handleInputChange(field, e.target.value)}
                     />
                 </div>
             );
 
-            const Radio = ({ label, field, options }) => (
+            const TextAreaField = ({ label, field, placeholder = "" }) => (
+                <div className="mb-5">
+                    <Label>{label}</Label>
+                    <textarea 
+                        placeholder={placeholder}
+                        className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none h-32 transition-all resize-none font-medium text-slate-700"
+                        value={formData[field] || ''}
+                        onChange={e => handleInputChange(field, e.target.value)}
+                    />
+                </div>
+            );
+
+            const RadioField = ({ label, field, options }) => (
                 <div className="mb-6">
-                    <FieldLabel>{label}</FieldLabel>
-                    <div className="flex flex-wrap gap-2">
+                    <Label>{label}</Label>
+                    <div className="flex flex-wrap gap-2.5">
                         {options.map(opt => (
                             <button 
                                 key={opt}
                                 onClick={() => handleInputChange(field, opt)}
-                                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${formData[field] === opt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'}`}
+                                className={`px-5 py-2.5 rounded-full text-sm font-bold border transition-all ${formData[field] === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-105' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'}`}
                             >
                                 {opt}
                             </button>
@@ -171,15 +186,15 @@
                 </div>
             );
 
-            const Intensity = ({ label, field }) => (
-                <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <FieldLabel>{label}</FieldLabel>
-                    <div className="grid grid-cols-3 gap-2 mt-2">
+            const IntensityField = ({ label, field }) => (
+                <div className="mb-6 p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+                    <Label>{label}</Label>
+                    <div className="grid grid-cols-3 gap-2 mt-3">
                         {["Pouca", "Média", "Muita"].map(lvl => (
                             <button 
                                 key={lvl}
                                 onClick={() => handleInputChange(field, lvl + " Intensidade")}
-                                className={`py-2 rounded-lg text-[10px] font-black uppercase transition-all ${formData[field] === (lvl + " Intensidade") ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}
+                                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all ${formData[field] === (lvl + " Intensidade") ? 'bg-indigo-600 text-white shadow-xl scale-105' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
                             >
                                 {lvl}
                             </button>
@@ -188,68 +203,74 @@
                 </div>
             );
 
+            // --- RENDERS ---
             if (view === 'login') return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-100">
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
-                        <Lock className="mx-auto mb-4 text-indigo-600" size={40} />
-                        <h2 className="text-2xl font-black text-slate-800 mb-2">{isFirstRun ? "Configurar Admin" : "Área Reservada"}</h2>
+                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                    <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border border-slate-100">
+                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <Lock size={32} />
+                        </div>
+                        <h2 className="text-2xl font-black text-slate-800 mb-2">{isFirstRun ? "Configurar Acesso" : "Painel Reservado"}</h2>
                         <input 
                             type="password" 
-                            className="w-full p-4 border rounded-2xl mb-4 text-center text-xl tracking-widest outline-none focus:ring-2 focus:ring-indigo-500" 
+                            className="w-full p-4 border-2 border-slate-100 rounded-2xl mb-5 text-center text-2xl tracking-[0.5em] outline-none focus:border-indigo-500 transition-all font-black" 
                             placeholder="••••"
                             value={adminPasswordInput}
                             onChange={e => setAdminPasswordInput(e.target.value)}
                         />
-                        <button onClick={handleAdminLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all">ACESSAR</button>
-                        <button onClick={() => setView('form')} className="mt-4 text-slate-400 text-sm font-bold">Voltar</button>
+                        <button onClick={handleAdminLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all">ACESSAR</button>
+                        <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase tracking-widest">Voltar</button>
                     </div>
                 </div>
             );
 
             if (view === 'admin') return (
                 <div className="min-h-screen bg-slate-50 flex flex-col">
-                    <header className="bg-white border-b p-4 px-8 flex justify-between items-center sticky top-0 z-50">
-                        <div className="flex items-center gap-2">
-                            <ClipboardList className="text-indigo-600" />
-                            <h1 className="font-black text-xl text-slate-800 tracking-tighter">Gestão de Pacientes</h1>
+                    <header className="bg-white border-b border-slate-200 p-5 px-8 flex justify-between items-center sticky top-0 z-50">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-600 p-2 rounded-xl text-white"><ClipboardList size={22}/></div>
+                            <h1 className="font-black text-2xl text-slate-800 tracking-tighter">Gestão de Pacientes</h1>
                         </div>
-                        <button onClick={() => setView('form')} className="text-rose-500 font-bold flex items-center gap-1 hover:bg-rose-50 px-4 py-2 rounded-full transition-all">
-                            <LogOut size={18}/> SAIR
+                        <button onClick={() => setView('form')} className="text-rose-500 font-black text-xs px-6 py-2.5 rounded-full hover:bg-rose-50 transition-all flex items-center gap-2">
+                            <LogOut size={16}/> SAIR
                         </button>
                     </header>
                     <div className="flex flex-1 overflow-hidden">
-                        <aside className="w-80 border-r bg-white overflow-y-auto hide-scrollbar">
+                        <aside className="w-80 border-r border-slate-200 bg-white overflow-y-auto hide-scrollbar">
                             {responses.map(res => (
                                 <button 
                                     key={res.id} 
                                     onClick={() => setSelectedResponse(res)}
                                     className={`w-full text-left p-6 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600 shadow-inner' : 'hover:bg-slate-50'}`}
                                 >
-                                    <div className="font-bold text-slate-900">{res.nome}</div>
-                                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">{new Date(res.createdAt).toLocaleDateString()} às {new Date(res.createdAt).toLocaleTimeString()}</div>
+                                    <div className="font-bold text-slate-900 text-lg leading-tight">{res.nome}</div>
+                                    <div className="text-[10px] text-indigo-400 font-black uppercase mt-1.5 flex items-center gap-1.5">
+                                        <Calendar size={12}/> {new Date(res.createdAt).toLocaleDateString()}
+                                    </div>
                                 </button>
                             ))}
                         </aside>
-                        <main className="flex-1 p-10 overflow-y-auto">
+                        <main className="flex-1 p-8 md:p-12 overflow-y-auto bg-slate-50">
                             {selectedResponse ? (
-                                <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-slate-100 max-w-4xl mx-auto">
+                                <div className="bg-white p-10 md:p-16 rounded-[3rem] shadow-sm border border-slate-200 max-w-5xl mx-auto fade-in">
                                     <h2 className="text-4xl font-black text-slate-900 mb-8 border-b pb-6">{selectedResponse.nome}</h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
                                         {Object.entries(selectedResponse).map(([k, v]) => {
                                             if (['id', 'createdAt', 'uid'].includes(k)) return null;
                                             return (
-                                                <div key={k} className="border-b border-slate-50 pb-2">
-                                                    <span className="text-[10px] font-black text-indigo-400 uppercase block mb-1">{k.replace(/_/g, ' ')}</span>
-                                                    <div className="text-slate-700 font-medium whitespace-pre-wrap">{v || "—"}</div>
+                                                <div key={k} className="border-b border-slate-50 pb-3">
+                                                    <span className="text-[10px] font-black text-slate-300 uppercase block mb-1 tracking-widest">{k.replace(/_/g, ' ')}</span>
+                                                    <div className="text-slate-800 font-bold text-md leading-relaxed whitespace-pre-wrap">{v || "—"}</div>
                                                 </div>
                                             );
                                         })}
                                     </div>
+                                    <button onClick={() => window.print()} className="mt-12 no-print bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-sm">IMPRIMIR FICHA</button>
                                 </div>
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-300">
-                                    <ClipboardList size={80} className="mb-4 opacity-20" />
-                                    <p className="font-bold text-xl">Selecione uma ficha para ler</p>
+                                <div className="h-full flex flex-col items-center justify-center text-slate-200">
+                                    <ClipboardList size={100} className="opacity-10" />
+                                    <p className="font-black text-2xl mt-4">Selecione uma ficha lateral</p>
                                 </div>
                             )}
                         </main>
@@ -258,151 +279,133 @@
             );
 
             return (
-                <div className="min-h-screen pb-20">
-                    <nav className="p-4 px-6 flex justify-between items-center sticky top-0 z-50 glass no-print">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black">A</div>
-                            <span className="font-black text-slate-800 text-lg tracking-tighter uppercase">Anamnese Sistémica</span>
+                <div className="min-h-screen bg-white font-sans text-slate-900 pb-20">
+                    <nav className="p-5 px-8 flex justify-between items-center sticky top-0 z-50 glass border-b border-slate-100 no-print">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100">A</div>
+                            <span className="font-black text-slate-800 text-xl tracking-tighter uppercase">Anamnese Sistêmica</span>
                         </div>
-                        {/* Cadeado discreto */}
-                        <button onClick={() => setView('login')} className="opacity-5 hover:opacity-100 transition-opacity p-2">
-                            <Lock size={16}/>
+                        <button onClick={() => setView('login')} className="opacity-[0.02] hover:opacity-100 transition-all p-3 text-indigo-600">
+                            <Lock size={18}/>
                         </button>
                     </nav>
 
-                    <div className="max-w-3xl mx-auto mt-6 px-4">
+                    <div className="max-w-4xl mx-auto mt-10 px-6">
                         {step < 5 && (
-                            <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
-                                <div className="h-1.5 bg-slate-100 flex">
+                            <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100 fade-in">
+                                <div className="h-2 bg-slate-50 flex">
                                     <div 
-                                        className="bg-indigo-600 h-full transition-all duration-700 shadow-[0_0_10px_rgba(79,70,229,0.5)]" 
+                                        className="bg-indigo-600 h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(79,70,229,0.3)]" 
                                         style={{ width: `${(step + 1) * 20}%` }}
                                     ></div>
                                 </div>
                                 
-                                <div className="p-8 md:p-14">
+                                <div className="p-10 md:p-20">
+                                    {/* PASSO 0: IDENTIFICAÇÃO */}
                                     {step === 0 && (
-                                        <div className="animate-in fade-in duration-500">
-                                            <div className="flex items-center gap-3 mb-8">
-                                                <div className="bg-indigo-100 text-indigo-600 p-3 rounded-2xl"><User/></div>
-                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Dados de Identificação</h2>
+                                        <div className="animate-in fade-in duration-700">
+                                            <div className="flex items-center gap-4 mb-12">
+                                                <div className="bg-indigo-50 text-indigo-600 p-4 rounded-[1.5rem] shadow-inner"><User size={28}/></div>
+                                                <h2 className="text-4xl font-black text-slate-900 leading-none">Identificação</h2>
                                             </div>
-                                            <Input label="Nome Completo:" field="nome" />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <Input label="RG:" field="rg" />
-                                                <Input label="CPF:" field="cpf" />
+                                            <InputField label="Nome Completo:" field="nome" placeholder="Seu nome completo" />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <InputField label="RG:" field="rg" />
+                                                <InputField label="CPF:" field="cpf" />
                                             </div>
-                                            <Input label="Data de Nascimento:" field="nascimento" type="date" />
-                                            <Input label="Morada/Endereço:" field="endereco" />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <Input label="Telemóvel/Zap:" field="whatsapp" />
-                                                <Input label="E-mail:" field="email" type="email" />
+                                            <InputField label="Data de Nascimento:" field="nascimento" type="date" />
+                                            <InputField label="Endereço / Morada:" field="endereco" />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <InputField label="WhatsApp:" field="whatsapp" />
+                                                <InputField label="E-mail:" field="email" type="email" />
                                             </div>
-                                            <TextArea label="Queixa Principal – O que te trouxe até aqui?" field="queixaPrincipal" />
+                                            <TextAreaField label="Queixa Principal – Por que buscou ajuda?" field="queixaPrincipal" />
                                         </div>
                                     )}
 
+                                    {/* PASSO 1: VIDA PESSOAL */}
                                     {step === 1 && (
-                                        <div className="animate-in slide-in-from-right-4 duration-500">
-                                            <div className="flex items-center gap-3 mb-8">
-                                                <div className="bg-rose-100 text-rose-600 p-3 rounded-2xl"><Heart/></div>
-                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 01 – Vida Pessoal</h2>
+                                        <div className="animate-in slide-in-from-right-6 duration-700">
+                                            <div className="flex items-center gap-4 mb-12">
+                                                <div className="bg-rose-50 text-rose-600 p-4 rounded-[1.5rem] shadow-inner"><Heart size={28}/></div>
+                                                <h2 className="text-4xl font-black text-slate-900 leading-none">Vida Pessoal</h2>
                                             </div>
-                                            <Radio label="Estado Civil Atual:" field="estadoCivilVida" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)', 'Viúva (o)']} />
-                                            <TextArea label="Como é o seu relacionamento com os seus filhos?" field="relacaoFilhos" />
-                                            <TextArea label="Como você se sente em sua casa?" field="sentimentoCasa" />
-                                            
-                                            <div className="mt-8 mb-4 p-6 bg-indigo-50 rounded-[2rem] border border-indigo-100">
-                                                <p className="font-black text-indigo-900 text-xs uppercase mb-4 tracking-widest">Sentimento de Pertencimento</p>
-                                                <Radio label="Sente que pertence à sua família?" field="pertenceFamilia" options={['Sim', 'Não']} />
-                                                <Radio label="Sente que pertence à sociedade?" field="pertenceSociedade" options={['Sim', 'Não']} />
+                                            <RadioField label="Estado Civil:" field="estadoCivilVida" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)', 'Viúva (o)']} />
+                                            <TextAreaField label="Relacionamento com filhos e parceiro(a):" field="relacaoFamiliar" />
+                                            <div className="my-10 p-8 bg-indigo-50 rounded-[2.5rem] border border-indigo-100">
+                                                <p className="font-black text-indigo-900 text-xs uppercase mb-4 tracking-widest">Pertencimento</p>
+                                                <RadioField label="Sente que pertence à família?" field="pertenceFamilia" options={['Sim', 'Não']} />
+                                                <RadioField label="Sente que pertence à sociedade?" field="pertenceSociedade" options={['Sim', 'Não']} />
                                             </div>
-
-                                            <div className="space-y-4 border-t pt-6">
-                                                {['Algum trauma', 'Alguma fobia', 'Uso de drogas', 'Ideias suicidas'].map(it => (
-                                                    <div key={it} className="p-4 border border-slate-100 rounded-2xl bg-slate-50">
-                                                        <Radio label={it + "?"} field={it} options={['Sim', 'Não']} />
-                                                        <Input label="Detalhes:" field={it + "_detalhe"} />
+                                            <div className="space-y-6">
+                                                {['Algum trauma', 'Uso de drogas', 'Ideias suicidas'].map(it => (
+                                                    <div key={it} className="p-6 border border-slate-100 rounded-3xl bg-slate-50">
+                                                        <RadioField label={it + "?"} field={it} options={['Sim', 'Não']} />
+                                                        <InputField label="Detalhes:" field={it + "_detalhe"} />
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
 
+                                    {/* PASSO 2: MENTAL */}
                                     {step === 2 && (
-                                        <div className="animate-in slide-in-from-right-4 duration-500">
-                                            <div className="flex items-center gap-3 mb-8">
-                                                <div className="bg-cyan-100 text-cyan-600 p-3 rounded-2xl"><Brain/></div>
-                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 02 – Mental</h2>
+                                        <div className="animate-in slide-in-from-right-6 duration-700">
+                                            <div className="flex items-center gap-4 mb-12">
+                                                <div className="bg-cyan-50 text-cyan-600 p-4 rounded-[1.5rem] shadow-inner"><Brain size={28}/></div>
+                                                <h2 className="text-4xl font-black text-slate-900 leading-none">Padrão Mental</h2>
                                             </div>
-                                            <p className="text-sm text-slate-400 mb-6 italic">Quais pensamentos alimenta em relação a:</p>
                                             {['Si mesma (o)', 'Passado', 'Futuro'].map(it => (
-                                                <div key={it} className="mb-6 p-6 border rounded-3xl bg-white shadow-sm">
-                                                    <Radio label={it} field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} />
-                                                    <TextArea label="Especifique os pensamentos:" field={"mental_detalhe_"+it} />
+                                                <div key={it} className="mb-10 p-8 border-2 border-slate-50 rounded-[2.5rem] bg-white shadow-sm hover:shadow-md transition-shadow">
+                                                    <RadioField label={"Pensamentos sobre "+it} field={"mental_"+it} options={['Positivos', 'Negativos']} />
+                                                    <TextAreaField label="Detalhe o que pensa:" field={"detalhe_"+it} />
                                                 </div>
                                             ))}
                                         </div>
                                     )}
 
+                                    {/* PASSO 3: INFÂNCIA */}
                                     {step === 3 && (
-                                        <div className="animate-in slide-in-from-right-4 duration-500">
-                                            <div className="flex items-center gap-3 mb-8">
-                                                <div className="bg-amber-100 text-amber-600 p-3 rounded-2xl"><Baby/></div>
-                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 03 – Infância</h2>
+                                        <div className="animate-in slide-in-from-right-6 duration-700">
+                                            <div className="flex items-center gap-4 mb-12">
+                                                <div className="bg-amber-50 text-amber-600 p-4 rounded-[1.5rem] shadow-inner"><Baby size={28}/></div>
+                                                <h2 className="text-4xl font-black text-slate-900 leading-none">Infância</h2>
                                             </div>
-                                            <TextArea label="Como era sua relação com seu Pai?" field="relacaoPai" />
-                                            <TextArea label="Como era sua relação com sua Mãe?" field="relacaoMae" />
-                                            <Radio label="Seus pais eram agressivos?" field="paisAgressivos" options={['Sim', 'Não']} />
-                                            <Radio label="Como era o relacionamento entre eles?" field="relacaoPaisStatus" options={['Excelente', 'Bom', 'Regular', 'Péssimo']} />
-                                            <TextArea label="O que dessa relação se repete na sua vida hoje?" field="repeticaoVida" />
-                                            <TextArea label="O que te faz sentir tristeza ao relembrar do passado?" field="tristezaPassado" />
+                                            <TextAreaField label="Relação com Pai e Mãe:" field="relacaoPais" />
+                                            <RadioField label="Pais agressivos?" field="paisAgressivos" options={['Sim', 'Não']} />
+                                            <TextAreaField label="O que se repete na sua vida hoje?" field="repeticao" />
+                                            <TextAreaField label="Fato marcante da infância:" field="fatoMarcante" />
                                         </div>
                                     )}
 
+                                    {/* PASSO 4: EMOCIONAL */}
                                     {step === 4 && (
-                                        <div className="animate-in slide-in-from-right-4 duration-500">
-                                            <div className="flex items-center gap-3 mb-8">
-                                                <div className="bg-emerald-100 text-emerald-600 p-3 rounded-2xl"><Smile/></div>
-                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 04 – Emocional</h2>
+                                        <div className="animate-in slide-in-from-right-6 duration-700">
+                                            <div className="flex items-center gap-4 mb-12">
+                                                <div className="bg-emerald-50 text-emerald-600 p-4 rounded-[1.5rem] shadow-inner"><Smile size={28}/></div>
+                                                <h2 className="text-4xl font-black text-slate-900 leading-none">Emocional</h2>
                                             </div>
-                                            <TextArea label="Quais são seus maiores medos hoje?" field="medosHoje" />
-                                            <Radio label="Como se vê na vida?" field="papelVida" options={['Vítima das circunstâncias', 'Responsável pelo caminho']} />
-                                            <Radio label="Sente raiva ou rancor de alguém?" field="raivaAlguem" options={['Sim', 'Não']} />
-                                            
-                                            <div className="mt-12 mb-8 text-center border-t pt-8">
-                                                <h3 className="font-black text-slate-800 text-xl mb-6">INTENSIDADE DE SENTIMENTOS</h3>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
-                                                    {['Ansiedade', 'Medo', 'Culpa', 'Tristeza', 'Revolta', 'Desânimo'].map(s => (
-                                                        <Intensity key={s} label={s} field={"sentimento_"+s} />
-                                                    ))}
-                                                </div>
+                                            <TextAreaField label="Seus maiores medos hoje:" field="medosHoje" />
+                                            <RadioField label="Como se vê na vida?" field="papelVida" options={['Vítima', 'Responsável']} />
+                                            <div className="mt-16 text-center border-t border-slate-50 pt-12">
+                                                <h3 className="font-black text-slate-800 text-2xl mb-8 tracking-tighter uppercase">Intensidade de Sentimentos</h3>
+                                                {['Ansiedade', 'Medo', 'Culpa', 'Tristeza', 'Revolta', 'Desânimo'].map(s => (
+                                                    <IntensityField key={s} label={s} field={"sentimento_"+s} />
+                                                ))}
                                             </div>
-
-                                            <button 
-                                                onClick={submitForm} 
-                                                disabled={isSubmitting}
-                                                className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-2xl hover:bg-indigo-700 shadow-xl transition-all flex items-center justify-center gap-3 disabled:bg-slate-300"
-                                            >
-                                                {isSubmitting ? "ENVIANDO..." : <><Send size={24}/> FINALIZAR FICHA</>}
+                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl hover:bg-indigo-700 shadow-2xl transition-all flex items-center justify-center gap-4">
+                                                {isSubmitting ? "ENVIANDO..." : <><Send size={28}/> FINALIZAR DIAGNÓSTICO</>}
                                             </button>
                                         </div>
                                     )}
 
-                                    {/* Navegação de Passos */}
-                                    <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-100 no-print">
-                                        <button 
-                                            onClick={() => { window.scrollTo(0,0); setStep(s => s - 1); }} 
-                                            disabled={step === 0}
-                                            className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 transition-all uppercase tracking-widest text-sm"
-                                        >
+                                    {/* NAVEGAÇÃO */}
+                                    <div className="flex justify-between items-center mt-16 pt-10 border-t border-slate-50 no-print">
+                                        <button onClick={() => { window.scrollTo(0,0); setStep(s => s - 1); }} disabled={step === 0} className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 transition-all uppercase tracking-widest text-sm">
                                             <ChevronLeft size={20}/> Anterior
                                         </button>
                                         {step < 4 && (
-                                            <button 
-                                                onClick={() => { window.scrollTo(0,0); setStep(s => s + 1); }}
-                                                className="flex items-center gap-2 bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all"
-                                            >
+                                            <button onClick={() => { window.scrollTo(0,0); setStep(s => s + 1); }} className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-black text-sm tracking-widest">
                                                 PRÓXIMO <ChevronRight size={20}/>
                                             </button>
                                         )}
@@ -412,21 +415,18 @@
                         )}
 
                         {step === 99 && (
-                            <div className="bg-white p-20 rounded-[3rem] shadow-2xl text-center border border-slate-100 animate-in zoom-in duration-500">
-                                <div className="flex justify-center mb-8 text-emerald-500">
+                            <div className="bg-white p-20 md:p-32 rounded-[4rem] shadow-2xl text-center animate-in zoom-in-95 duration-1000">
+                                <div className="flex justify-center mb-10 text-emerald-500">
                                     <CheckCircle2 size={100}/>
                                 </div>
-                                <h2 className="text-4xl font-black text-slate-900 mb-4 leading-tight">Envio Concluído!</h2>
-                                <p className="text-slate-500 text-lg mb-10 max-w-sm mx-auto">Sua ficha foi enviada com total sigilo. O seu terapeuta foi notificado pelo WhatsApp.</p>
-                                <button onClick={() => {setStep(0); setFormData({});}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all">
-                                    Novo Formulário
-                                </button>
+                                <h2 className="text-5xl font-black text-slate-900 mb-6">Sucesso!</h2>
+                                <p className="text-slate-400 text-xl mb-12">Seu terapeuta foi notificado pelo WhatsApp.</p>
+                                <button onClick={() => {setStep(0); setFormData({});}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all">Novo Formulário</button>
                             </div>
                         )}
                     </div>
-                    
-                    <footer className="mt-12 text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] pb-10">
-                        Sistema Clínico Confidencial &copy; 2024
+                    <footer className="mt-16 text-center text-slate-200 text-[10px] font-black uppercase tracking-[0.5em] pb-12">
+                        Prontuário Profissional &copy; 2024
                     </footer>
                 </div>
             );
