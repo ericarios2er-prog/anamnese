@@ -18,10 +18,20 @@
         
         @media print { 
             .no-print { display: none !important; } 
-            body { background: white; padding: 0; }
-            .print-container { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
-            .section-break { page-break-inside: avoid; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-            h2 { color: black !important; }
+            body { background: white !important; padding: 0 !important; }
+            .print-container { 
+                box-shadow: none !important; 
+                border: none !important; 
+                margin: 0 !important; 
+                padding: 20px !important; 
+                width: 100% !important; 
+                max-width: 100% !important;
+                display: block !important;
+            }
+            .section-break { page-break-inside: avoid; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
+            h2, h3 { color: black !important; border-bottom: 1px solid #000 !important; }
+            aside, nav, button, .progress-bar { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
         }
     </style>
 </head>
@@ -30,7 +40,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, getDoc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -46,13 +56,13 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        window.FB = { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, signInAnonymously, onAuthStateChanged };
+        window.FB = { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, deleteDoc, signInAnonymously, onAuthStateChanged };
     </script>
 
     <script type="text/babel">
         const { useState, useEffect, memo, useCallback } = React;
 
-        // --- COMPONENTES DE UI ESTÁVEIS ---
+        // --- COMPONENTES DE UI ---
         const InputField = memo(({ label, field, type = "text", placeholder = "", value, onChange }) => (
             <div className="mb-5">
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{label}</label>
@@ -100,7 +110,7 @@
             <div className="mb-6 p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
                 <label className="block text-xs font-bold text-slate-600 mb-3 tracking-tight">{label}</label>
                 <div className="grid grid-cols-2 gap-2">
-                    {["Muita Intensidade", "Média Intensidade"].map(lvl => (
+                    {["Muita Intensidade", "Média Intensidade", "Pouca/Nenhuma"].map(lvl => (
                         <button 
                             key={lvl}
                             type="button"
@@ -110,13 +120,6 @@
                             {lvl}
                         </button>
                     ))}
-                    <button 
-                        type="button"
-                        onClick={() => onChange(field, "Pouca/Nenhuma")}
-                        className={`col-span-2 py-2 text-[9px] font-bold text-slate-300 ${value === "Pouca/Nenhuma" ? 'text-indigo-500 underline' : ''}`}
-                    >
-                        Pouca ou Nenhuma
-                    </button>
                 </div>
             </div>
         ));
@@ -147,14 +150,48 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [dbAdminPass, setDbAdminPass] = useState(null);
             const [isFirstRun, setIsFirstRun] = useState(false);
+            const [loadingDraft, setLoadingDraft] = useState(true);
 
-            const { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, signInAnonymously, onAuthStateChanged } = window.FB;
+            const { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, deleteDoc, signInAnonymously, onAuthStateChanged } = window.FB;
 
+            // 1. Auth e Carregamento de Rascunho
             useEffect(() => {
-                signInAnonymously(auth).catch(console.error);
-                onAuthStateChanged(auth, setUser);
+                const init = async () => {
+                    await signInAnonymously(auth).catch(console.error);
+                };
+                init();
+                const unsubscribe = onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                    if (u) loadDraft(u.uid);
+                });
+                return () => unsubscribe();
             }, []);
 
+            const loadDraft = async (uid) => {
+                try {
+                    const draftRef = doc(db, 'artifacts', APP_ID, 'users', uid, 'drafts', 'current');
+                    const snap = await getDoc(draftRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        setFormData(data.formData || {});
+                        setStep(data.step || 0);
+                    }
+                } catch (e) { console.error("Erro rascunho:", e); }
+                finally { setLoadingDraft(false); }
+            };
+
+            // 2. Salvamento Automático (Persistência)
+            useEffect(() => {
+                if (!user || loadingDraft || step === 99) return;
+                const save = async () => {
+                    const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
+                    await setDoc(draftRef, { formData, step, updatedAt: Date.now() }, { merge: true });
+                };
+                const timer = setTimeout(save, 1000); // Debounce de 1 segundo
+                return () => clearTimeout(timer);
+            }, [formData, step, user, loadingDraft]);
+
+            // 3. Admin Config
             useEffect(() => {
                 if (!user) return;
                 const checkAdmin = async () => {
@@ -168,6 +205,7 @@
                 checkAdmin();
             }, [user]);
 
+            // 4. Admin Listener
             useEffect(() => {
                 if (!user || view !== 'admin') return;
                 const q = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
@@ -186,10 +224,17 @@
                 if (!formData.nome) return alert("Por favor, preencha seu nome.");
                 setIsSubmitting(true);
                 try {
+                    // Salvar resposta final
                     const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
                     await addDoc(colRef, { ...formData, createdAt: Date.now(), uid: user.uid });
+                    
+                    // Limpar rascunho
+                    const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
+                    await deleteDoc(draftRef);
+
                     const msg = window.encodeURIComponent(`Olá! Finalizei o preenchimento da minha ficha de anamnese sistêmica.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${WHATSAPP_NOTIFY}?text=${msg}`, '_blank');
+                    
                     setStep(99);
                     window.scrollTo(0,0);
                 } catch (err) { alert("Erro ao salvar dados."); } 
@@ -207,101 +252,33 @@
                 }
             };
 
-            // Função para renderizar os dados formatados para impressão
-            const renderPrintSection = (title, fields) => {
-                const availableFields = fields.filter(f => selectedResponse[f.key]);
-                if (availableFields.length === 0) return null;
-
-                return (
-                    <div className="section-break mb-8">
-                        <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-4 border-b pb-2">{title}</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-                            {availableFields.map(f => (
-                                <div key={f.key} className="flex flex-col">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{f.label}</span>
-                                    <span className="text-sm text-slate-800 font-medium whitespace-pre-wrap">{selectedResponse[f.key]}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
+            // Grupos de campos para exibir TUDO no Admin
+            const getAllFields = () => {
+                if (!selectedResponse) return [];
+                // Identifica chaves que não são metadados e agrupa logicamente
+                const keys = Object.keys(selectedResponse).filter(k => !['id', 'createdAt', 'uid'].includes(k));
+                
+                return [
+                    { title: "Identificação e Dados Pessoais", keys: keys.filter(k => !k.includes('_') && !['queixaPrincipal'].includes(k)) },
+                    { title: "Queixa Principal", keys: ['queixaPrincipal'] },
+                    { title: "Fase 01 - Vida Pessoal", keys: keys.filter(k => k.startsWith('status') || k.startsWith('motivo') || k.startsWith('relacao') || k.startsWith('sentimento') || k.startsWith('pertence') || k.startsWith('pq') || k.startsWith('frustracao') || k.startsWith('idade') || k.startsWith('primeira') || k.startsWith('quest') || k.startsWith('detalhe')) },
+                    { title: "Fase 02 - Mental", keys: keys.filter(k => k.startsWith('mental')) },
+                    { title: "Fase 03 - Infância", keys: keys.filter(k => k.startsWith('criado') || k.startsWith('infancia') || k.startsWith('pais') || k.startsWith('mais') || k.startsWith('repeticao') || k.startsWith('naoRepetir') || k.startsWith('crença') || k.startsWith('tristeza') || k.startsWith('medo') || k.startsWith('luz') || k.startsWith('qualidade') || k.startsWith('rebeldia') || k.startsWith('dif') || k.startsWith('filosofia') || k.startsWith('ser') || k.startsWith('como') || k.startsWith('possui') || k.startsWith('qtd') || k.startsWith('perfil') || k.startsWith('fato')) },
+                    { title: "Fase 04 - Emocional", keys: keys.filter(k => k.startsWith('medos') || k.startsWith('pensa') || k.startsWith('papel') || k.startsWith('ganho') || k.startsWith('situacao') || k.startsWith('vitoria') || k.startsWith('dominante') || k.startsWith('quem') || k.startsWith('pressionada') || k.startsWith('controladora') || k.startsWith('inferior') || k.startsWith('duvida') || k.startsWith('oque') || k.startsWith('sentimento_')) }
+                ];
             };
 
-            const getFieldGroups = () => [
-                {
-                    title: "Dados Pessoais",
-                    fields: [
-                        { label: "Nome", key: "nome" }, { label: "RG", key: "rg" }, { label: "CPF", key: "cpf" },
-                        { label: "Nascimento", key: "nascimento" }, { label: "Estado Civil", key: "estadoCivil" },
-                        { label: "Endereço", key: "endereco" }, { label: "CEP", key: "cep" },
-                        { label: "Complemento", key: "complemento" }, { label: "Bairro", key: "bairro" },
-                        { label: "Cidade", key: "cidade" }, { label: "Fone Residencial", key: "telResidencial" },
-                        { label: "Celular", key: "celular" }, { label: "E-mail", key: "email" },
-                        { label: "Profissão", key: "profissao" }, { label: "Empresa", key: "empresa" },
-                        { label: "Atividade", key: "atividade" }, { label: "Cargo", key: "cargo" },
-                        { label: "Religião", key: "religiao" }, { label: "Escolaridade", key: "escolaridade" },
-                        { label: "Queixa Principal", key: "queixaPrincipal" }
-                    ]
-                },
-                {
-                    title: "Fase 01 - Vida Pessoal",
-                    fields: [
-                        { label: "Status Civil", key: "statusCivilFase1" }, { label: "Motivo Divórcio", key: "motivoDivorcio" },
-                        { label: "Nº Filhos", key: "numFilhos" }, { label: "Relação Filhos", key: "relacaoFilhos" },
-                        { label: "Relacionamento Parceiro", key: "sentimentoParceiro" }, { label: "Contexto Familiar", key: "sentimentoCasa" },
-                        { label: "Sentimento Trabalho", key: "sentimentoTrabalho" }, { label: "Pertence Família", key: "pertenceFamiliar" },
-                        { label: "Por que Família", key: "pqFamiliar" }, { label: "Pertence Social", key: "pertenceSocial" },
-                        { label: "Por que Social", key: "pqSocial" }, { label: "Pertence Religioso", key: "pertenceReligioso" },
-                        { label: "Por que Religioso", key: "pqReligioso" }, { label: "Idade Sexualidade", key: "idadeSexualidade" },
-                        { label: "Primeira Vez", key: "primeiraVez" }, { label: "Problemas Sexuais", key: "problemaSexo" },
-                        { label: "Realização Sexual", key: "realizacaoSexual" }, { label: "Importância Sexo", key: "importanciaSexo" },
-                        { label: "Traumas", key: "quest_Algum trauma" }, { label: "Fobias", key: "quest_Alguma fobia" },
-                        { label: "Usa Drogas", key: "quest_Usa drogas" }, { label: "Ideias Suicidas", key: "quest_Tem ideias suicidas" },
-                        { label: "Nível Stress", key: "nivelStress" }, { label: "Medicação", key: "tomaMedicao" },
-                        { label: "Qual Medicação", key: "qualMedicao" }, { label: "Psiquiatra/Psicólogo", key: "consultouPsi" },
-                        { label: "Diagnóstico", key: "foiDiagnostico" }, { label: "Crença das Pessoas", key: "crençaRepete" },
-                        { label: "Considera Feliz", key: "consideraFeliz" }, { label: "O que mudaria", key: "mudariaEmSi" },
-                        { label: "Definição Vida", key: "definicaoVida" }
-                    ]
-                },
-                {
-                    title: "Fase 02 - Mental (Pensamentos)",
-                    fields: [
-                        { label: "Sobre Si Mesma", key: "mental_detalhe_Si mesma (o)" },
-                        { label: "Sobre Aparência", key: "mental_detalhe_Aparência física" },
-                        { label: "Profissional", key: "mental_detalhe_Competência profissional" },
-                        { label: "Emocional", key: "mental_detalhe_Vida emocional" },
-                        { label: "Sexual", key: "mental_detalhe_Vida sexual" },
-                        { label: "Passado", key: "mental_detalhe_Passado" },
-                        { label: "Futuro", key: "mental_detalhe_Futuro" },
-                        { label: "Visão sobre Você", key: "visaoSobreSi" }
-                    ]
-                },
-                {
-                    title: "Fase 03 - Infância",
-                    fields: [
-                        { label: "Criado pelos Pais", key: "criadoPelosPais" }, { label: "Relação Pai", key: "relacaoPai" },
-                        { label: "Relação Mãe", key: "relacaoMae" }, { label: "Pais Agressivos", key: "paisAgressivos" },
-                        { label: "Mais Bravo", key: "maisBravo" }, { label: "Relacionamento Pais", key: "relacaoPaisQualidade" },
-                        { label: "Repete na Vida", key: "repeticaoRelacao" }, { label: "Determinado a Não Repetir", key: "naoRepetirRelacao" },
-                        { label: "Crença Relacionamentos", key: "crençaAdquirida" }, { label: "Tristeza Passado", key: "tristezaPassado" },
-                        { label: "Fato Marcante", key: "fatoMarcanteInfancia" }
-                    ]
-                },
-                {
-                    title: "Fase 04 - Emocional",
-                    fields: [
-                        { label: "Maiores Medos", key: "medosHoje" }, { label: "Pensa de Si", key: "pensaDeSi" },
-                        { label: "Papel na Vida", key: "papelVida" }, { label: "Vitoriosa/Derrotada", key: "vitoriaDerrota" },
-                        { label: "Dominante/Submisso", key: "dominanteSubmisso" }, { label: "Culpado Problemas", key: "quemCulpado" },
-                        { label: "Raiva Alguém", key: "quemRaiva" }, { label: "Controladora", key: "controladora" },
-                        { label: "Dúvida Capacidade", key: "duvidaCapacidade" }, { label: "Culpada de algo", key: "oqueCulpa" }
-                    ]
-                }
-            ];
+            if (loadingDraft && view === 'form') return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                    <div className="animate-pulse flex flex-col items-center">
+                        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="mt-4 font-bold text-slate-400 uppercase tracking-widest text-xs">Recuperando seu progresso...</p>
+                    </div>
+                </div>
+            );
 
             if (view === 'login') return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 no-print">
                     <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border">
                         <div className="flex justify-center text-indigo-600 mb-4"><Icons.Lock /></div>
                         <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter">{isFirstRun ? "Configurar Senha" : "Área Administrativa"}</h2>
@@ -313,70 +290,74 @@
             );
 
             if (view === 'admin') return (
-                <div className="min-h-screen bg-slate-50 flex flex-col no-print">
-                    <header className="bg-white border-b p-5 px-8 flex justify-between items-center sticky top-0 z-50">
+                <div className="min-h-screen bg-slate-50 flex flex-col">
+                    <header className="bg-white border-b p-5 px-8 flex justify-between items-center sticky top-0 z-50 no-print">
                         <div className="flex items-center gap-3">
                             <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><Icons.Clipboard /></div>
-                            <h1 className="font-black text-2xl text-slate-800 tracking-tighter uppercase">Gestão de Pacientes</h1>
+                            <h1 className="font-black text-2xl text-slate-800 tracking-tighter uppercase">Painel de Pacientes</h1>
                         </div>
                         <button onClick={() => setView('form')} className="text-rose-500 font-black text-xs px-6 py-2.5 rounded-full bg-rose-50 flex items-center gap-2 hover:bg-rose-100 transition-all"><Icons.LogOut /> SAIR</button>
                     </header>
                     <div className="flex flex-1 overflow-hidden">
-                        <aside className="w-80 border-r bg-white overflow-y-auto hide-scrollbar">
+                        <aside className="w-80 border-r bg-white overflow-y-auto hide-scrollbar no-print">
                             <div className="p-4 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">Pacientes Recentes</div>
                             {responses.map(res => (
-                                <button key={res.id} onClick={() => setSelectedResponse(res)} className={`w-full text-left p-6 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'}`}>
-                                    <div className="font-bold text-slate-900 leading-tight">{res.nome}</div>
-                                    <div className="text-[10px] text-indigo-400 font-black uppercase mt-1 tracking-tighter">{new Date(res.createdAt).toLocaleDateString()}</div>
+                                <button key={res.id} onClick={() => setSelectedResponse(res)} className={`w-full text-left p-6 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600 shadow-inner' : 'hover:bg-slate-50'}`}>
+                                    <div className="font-bold text-slate-900 leading-tight">{res.nome || "Paciente Sem Nome"}</div>
+                                    <div className="text-[10px] text-slate-400 font-black uppercase mt-1 tracking-tighter">{new Date(res.createdAt).toLocaleDateString()}</div>
                                 </button>
                             ))}
                         </aside>
-                        <main className="flex-1 p-10 overflow-y-auto bg-slate-100">
+                        <main className="flex-1 p-5 md:p-10 overflow-y-auto bg-slate-100">
                             {selectedResponse ? (
-                                <div className="print-container bg-white p-12 rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in">
-                                    <div className="flex justify-between items-start mb-12 border-b pb-8 no-print">
+                                <div className="print-container bg-white p-8 md:p-14 rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in">
+                                    <div className="flex justify-between items-center mb-10 border-b pb-8 no-print">
                                         <div>
-                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Análise Sistêmica Profissional</span>
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tighter">{selectedResponse.nome}</h2>
+                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Ficha Clínica Profissional</span>
+                                            <h2 className="text-3xl font-black text-slate-900 leading-none tracking-tighter">{selectedResponse.nome}</h2>
                                         </div>
-                                        <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-black transition-all">
+                                        <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-black transition-all">
                                             <Icons.Printer /> IMPRIMIR ANAMNESE
                                         </button>
                                     </div>
                                     
-                                    {/* CABEÇALHO PARA IMPRESSÃO (Só aparece no PDF) */}
-                                    <div className="hidden print:block text-center mb-10 border-b-2 border-black pb-4">
-                                        <h1 className="text-2xl font-black uppercase tracking-widest">Ficha de Anamnese Sistêmica</h1>
-                                        <p className="text-xs font-bold text-slate-500 mt-1">Data de Preenchimento: {new Date(selectedResponse.createdAt).toLocaleString()}</p>
-                                        <p className="text-lg font-bold mt-2 uppercase">{selectedResponse.nome}</p>
-                                    </div>
-
-                                    {getFieldGroups().map(group => renderPrintSection(group.title, group.fields))}
-                                    
-                                    {/* Seção de Sentimentos (Tabela) */}
-                                    <div className="section-break mt-10">
-                                        <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-4 border-b pb-2">Intensidade de Sentimentos</h3>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                            {Object.entries(selectedResponse)
-                                                .filter(([k,v]) => k.startsWith('sentimento_') && v !== "Pouca/Nenhuma")
-                                                .map(([k,v]) => (
-                                                    <div key={k} className="p-3 bg-slate-50 rounded-xl border">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase block leading-none mb-1">{k.replace('sentimento_', '')}</span>
-                                                        <span className="text-xs font-bold text-indigo-600">{v}</span>
-                                                    </div>
-                                                ))
-                                            }
+                                    {/* CABEÇALHO EXCLUSIVO PARA IMPRESSÃO */}
+                                    <div className="hidden print:block text-center mb-10 border-b-4 border-slate-900 pb-6">
+                                        <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">Prontuário de Anamnese Sistêmica</h1>
+                                        <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-500 uppercase">
+                                            <span>Paciente: {selectedResponse.nome}</span>
+                                            <span>Data: {new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
                                         </div>
                                     </div>
 
-                                    <footer className="mt-12 pt-8 border-t hidden print:block text-center text-[10px] text-slate-400">
-                                        Documento Confidencial - Anamnese Terapêutica Sistêmica - © 2024
+                                    {getAllFields().map(group => {
+                                        const validKeys = group.keys.filter(k => selectedResponse[k] !== undefined && selectedResponse[k] !== "");
+                                        if (validKeys.length === 0) return null;
+                                        return (
+                                            <div key={group.title} className="section-break mb-10">
+                                                <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 border-l-4 border-indigo-600 pl-3 bg-slate-50 py-2">{group.title}</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                                                    {validKeys.map(k => (
+                                                        <div key={k} className="flex flex-col border-b border-slate-50 pb-2">
+                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                                                                {k.replace('sentimento_', '').replace('quest_', '').replace('infancia_', '').replace('filosofia_', '').replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
+                                                            </span>
+                                                            <span className="text-[13px] text-slate-800 font-semibold leading-relaxed whitespace-pre-wrap">{selectedResponse[k]}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    <footer className="mt-16 pt-8 border-t-2 border-slate-100 hidden print:block text-center">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-300">Documento Confidencial - Anamnese Sistêmica - © 2024</p>
                                     </footer>
                                 </div>
                             ) : (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-200">
                                     <Icons.Clipboard />
-                                    <p className="mt-4 font-black uppercase text-sm tracking-widest">Selecione uma ficha para iniciar a análise</p>
+                                    <p className="mt-4 font-black uppercase text-sm tracking-widest">Selecione um prontuário para análise</p>
                                 </div>
                             )}
                         </main>
@@ -391,8 +372,7 @@
                             <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100">A</div>
                             <span className="font-black text-slate-800 text-xl tracking-tighter uppercase">Anamnese Sistêmica</span>
                         </div>
-                        {/* CADEADO QUASE INVISÍVEL NO TOPO DIREITO - Passe o mouse para ver */}
-                        <button onClick={() => setView('login')} className="opacity-[0.05] hover:opacity-100 transition-all p-3 text-indigo-600 cursor-default hover:cursor-pointer" title="Área Restrita">
+                        <button onClick={() => setView('login')} className="opacity-[0.05] hover:opacity-100 transition-all p-3 text-indigo-600">
                             <Icons.Lock />
                         </button>
                     </nav>
@@ -406,7 +386,7 @@
                                     {/* ETAPA 0: DADOS PESSOAIS */}
                                     {step === 0 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic">Dados Pessoais</h2>
+                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Dados Pessoais</h2>
                                             <InputField label="Nome:" field="nome" value={formData.nome} onChange={handleInputChange} />
                                             <div className="grid grid-cols-2 gap-4">
                                                 <InputField label="RG:" field="rg" value={formData.rg} onChange={handleInputChange} />
@@ -445,7 +425,7 @@
                                     {/* ETAPA 1: FASE 01 */}
                                     {step === 1 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic">Fase 01 – Vida Pessoal</h2>
+                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 01 – Vida Pessoal</h2>
                                             <RadioField label="É casada (o), solteira (o) ou divorciada (o)?" field="statusCivilFase1" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)']} value={formData.statusCivilFase1} onChange={handleInputChange} />
                                             <TextAreaField label="Se é divorciada (o), por qual motivo e como se sente?" field="motivoDivorcio" value={formData.motivoDivorcio} onChange={handleInputChange} />
                                             <InputField label="Número de filhos:" field="numFilhos" value={formData.numFilhos} onChange={handleInputChange} />
@@ -454,7 +434,7 @@
                                             <TextAreaField label="Como você se sente em sua casa, dentro do contexto familiar?" field="sentimentoCasa" value={formData.sentimentoCasa} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente no seu trabalho?" field="sentimentoTrabalho" value={formData.sentimentoTrabalho} onChange={handleInputChange} />
                                             
-                                            <div className="my-10 p-8 bg-indigo-50 rounded-[2.5rem] border border-indigo-100">
+                                            <div className="my-10 p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
                                                 <p className="font-black text-indigo-900 text-xs uppercase mb-6 tracking-widest text-center italic">Sentimento de Pertencimento</p>
                                                 <RadioField label="Você se sente pertencendo ao Contexto Familiar?" field="pertenceFamiliar" options={['Sim', 'Não']} value={formData.pertenceFamiliar} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê?" field="pqFamiliar" value={formData.pqFamiliar} onChange={handleInputChange} />
@@ -464,7 +444,7 @@
                                                 <TextAreaField label="Por quê?" field="pqReligioso" value={formData.pqReligioso} onChange={handleInputChange} />
                                             </div>
 
-                                            <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter">Você sente frustração em relação a:</p>
+                                            <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter italic">Você sente frustração em relação a:</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
                                                 {['Pais', 'Irmãos', 'Filhos', 'Profissão', 'Colégio', 'Cônjuge', 'Identidade Sexual', 'Vida Sexual'].map(item => (
                                                     <RadioField key={item} label={item + "?"} field={"frustracao_"+item} options={['Sim', 'Não']} value={formData["frustracao_"+item]} onChange={handleInputChange} />
@@ -510,7 +490,7 @@
                                     {/* ETAPA 2: FASE 02 */}
                                     {step === 2 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic">Fase 02 – Mental</h2>
+                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
                                             {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
                                                 <div key={it} className="mb-10 p-8 border-2 border-slate-50 rounded-[2.5rem] bg-white shadow-sm hover:shadow-md transition-shadow">
                                                     <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic">Em relação a {it}:</p>
@@ -525,7 +505,7 @@
                                     {/* ETAPA 3: FASE 03 */}
                                     {step === 3 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic">Fase 03 – Infância</h2>
+                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 03 – Infância</h2>
                                             <RadioField label="Você foi criado pelos pais?" field="criadoPelosPais" options={['Sim', 'Não']} value={formData.criadoPelosPais} onChange={handleInputChange} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                                                 <TextAreaField label="Como é sua relação com seu Pai?" field="relacaoPai" value={formData.relacaoPai} onChange={handleInputChange} />
@@ -578,7 +558,7 @@
                                     {/* ETAPA 4: FASE 04 */}
                                     {step === 4 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic">Fase 04 – Emocional</h2>
+                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 04 – Emocional</h2>
                                             <TextAreaField label="Quais são seus maiores medos hoje?" field="medosHoje" value={formData.medosHoje} onChange={handleInputChange} />
                                             <TextAreaField label="O que você pensa a seu respeito?" field="pensaDeSi" value={formData.pensaDeSi} onChange={handleInputChange} />
                                             <TextAreaField label="Como foi o seu primeiro relacionamento amoroso?" field="primeiraRelacaoAmor" value={formData.primeiraRelacaoAmor} onChange={handleInputChange} />
@@ -621,9 +601,9 @@
                                     )}
 
                                     <div className="flex justify-between items-center mt-16 pt-10 border-t border-slate-50 no-print">
-                                        <button onClick={() => { window.scrollTo(0,0); setStep(s => s - 1); }} disabled={step === 0} className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-[0.2em] transition-all"><Icons.ChevronLeft /> Anterior</button>
+                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-[0.2em] transition-all"><Icons.ChevronLeft /> Anterior</button>
                                         <div className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-200 italic">Etapa {step + 1} / 5</div>
-                                        {step < 4 && <button onClick={() => { window.scrollTo(0,0); setStep(s => s + 1); }} className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-xl hover:bg-black text-xs tracking-[0.2em] transition-all flex items-center gap-2 uppercase active:scale-95">PRÓXIMO <Icons.ChevronRight /></button>}
+                                        {step < 4 && <button onClick={() => setStep(s => s + 1)} className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-xl hover:bg-black text-xs tracking-[0.2em] transition-all flex items-center gap-2 uppercase active:scale-95">PRÓXIMO <Icons.ChevronRight /></button>}
                                     </div>
                                 </div>
                             </div>
@@ -638,7 +618,7 @@
                             </div>
                         )}
                     </div>
-                    <footer className="mt-16 text-center text-slate-200 text-[10px] font-black uppercase tracking-[0.5em] pb-12 italic">Confidencial &copy; 2024</footer>
+                    <footer className="mt-16 text-center text-slate-200 text-[10px] font-black uppercase tracking-[0.5em] pb-12 italic no-print">Confidencial &copy; 2024</footer>
                 </div>
             );
         };
