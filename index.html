@@ -1,476 +1,462 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anamnese Terapêutica - Meu Consultório</title>
+    
+    <!-- Scripts Necessários: React, Tailwind, Lucide Icons e Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-        --- CONFIGURAÇÃO FIREBASE ---
-// COLA AQUI OS DADOS QUE COPIASTE DO TEU ECRÃ DO FIREBASE (OPÇÃO "CONFIG")
-  const firebaseConfig = {
-  apiKey: "AIzaSyA0JuzYmLbJ9HCPXpfxGWQX19NsZenXO0s",
-  authDomain: "meu-consultorio-568f0.firebaseapp.com",
-  projectId: "meu-consultorio-568f0",
-  storageBucket: "meu-consultorio-568f0.firebasestorage.app",
-  messagingSenderId: "121957844615",
-  appId: "1:121957844615:web:bdd21d6b2507acfb451a22",
-};
+    <style>
+        body { background-color: #f9fafb; }
+        .intensity-option { transition: all 0.2s; }
+        input[type="radio"]:checked + span { color: #2563eb; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // CONFIGURAÇÃO FIREBASE FORNECIDA
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0JuzYmLbJ9HCPXpfxGWQX19NsZenXO0s",
+            authDomain: "meu-consultorio-568f0.firebaseapp.com",
+            projectId: "meu-consultorio-568f0",
+            storageBucket: "meu-consultorio-568f0.firebasestorage.app",
+            messagingSenderId: "121957844615",
+            appId: "1:121957844615:web:bdd21d6b2507acfb451a22",
+        };
+
+        // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        
-      export default function App() {
-  const [user, setUser] = useState(null);
-  const [view, setView] = useState('form'); 
-  const [step, setStep] = useState(0); 
-  const [formData, setFormData] = useState({});
-  const [responses, setResponses] = useState([]);
-  const [selectedResponse, setSelectedResponse] = useState(null);
-  const [adminPasswordInput, setAdminPasswordInput] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dbAdminPassword, setDbAdminPassword] = useState(null);
-  const [isFirstRun, setIsFirstRun] = useState(false);
+        const appId = "meu-consultorio-568f0";
 
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Auth error", err);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
+        // Exportar para o escopo global para o Babel usar
+        window.FB = { db, auth, collection, addDoc, getDocs, doc, getDoc, setDoc, onSnapshot, appId };
+    </script>
 
-  useEffect(() => {
-    if (!user) return;
-    const checkAdminConfig = async () => {
-      const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'admin');
-      const docSnap = await getDoc(configRef);
-      if (docSnap.exists()) {
-        setDbAdminPassword(docSnap.data().password);
-        setIsFirstRun(false);
-      } else {
-        setIsFirstRun(true);
-      }
-    };
-    checkAdminConfig();
-  }, [user, view]);
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { 
+            Lock, ClipboardList, LogOut, Send, 
+            ChevronLeft, ChevronRight, CheckCircle2,
+            User, Heart, Brain, Baby, Smile
+        } = lucide;
 
-  useEffect(() => {
-    if (!user || view !== 'admin') return;
-    const q = collection(db, 'artifacts', appId, 'public', 'data', 'responses');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      docs.sort((a, b) => b.createdAt - a.createdAt);
-      setResponses(docs);
-    });
-    return () => unsubscribe();
-  }, [user, view]);
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('form'); 
+            const [step, setStep] = useState(0); 
+            const [formData, setFormData] = useState({});
+            const [responses, setResponses] = useState([]);
+            const [selectedResponse, setSelectedResponse] = useState(null);
+            const [adminPasswordInput, setAdminPasswordInput] = useState('');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [dbAdminPassword, setDbAdminPassword] = useState(null);
+            const [isFirstRun, setIsFirstRun] = useState(false);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+            const { db, auth, collection, addDoc, getDocs, doc, getDoc, setDoc, onSnapshot, appId } = window.FB;
 
-  const submitForm = async () => {
-    if (!formData.nome) {
-      alert("O campo Nome é obrigatório.");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const responsePath = collection(db, 'artifacts', appId, 'public', 'data', 'responses');
-      await addDoc(responsePath, {
-        ...formData,
-        createdAt: Date.now(),
-        clientUid: user.uid
-      });
-      setStep(99); 
-    } catch (err) {
-      alert("Erro ao enviar.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        await FB.signInAnonymously(auth);
+                    } catch (err) {
+                        console.error("Auth error", err);
+                    }
+                };
+                initAuth();
+                FB.onAuthStateChanged(auth, setUser);
+            }, []);
 
-  const handleAdminAction = async () => {
-    if (isFirstRun) {
-      if (adminPasswordInput.length < 4) return alert("Mínimo 4 caracteres.");
-      const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'admin');
-      await setDoc(configRef, { password: adminPasswordInput });
-      setDbAdminPassword(adminPasswordInput);
-      setIsFirstRun(false);
-      setView('admin');
-    } else {
-      if (adminPasswordInput === dbAdminPassword) setView('admin');
-      else alert("Senha incorreta.");
-    }
-  };
+            useEffect(() => {
+                if (!user) return;
+                const checkAdminConfig = async () => {
+                    const configRef = FB.doc(db, 'artifacts', appId, 'public', 'data', 'config', 'admin');
+                    const docSnap = await FB.getDoc(configRef);
+                    if (docSnap.exists()) {
+                        setDbAdminPassword(docSnap.data().password);
+                        setIsFirstRun(false);
+                    } else {
+                        setIsFirstRun(true);
+                    }
+                };
+                checkAdminConfig();
+            }, [user, view]);
 
-  const Input = ({ label, field, type = "text" }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type={type}
-        className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-        value={formData[field] || ''}
-        onChange={(e) => handleInputChange(field, e.target.value)}
-      />
-    </div>
-  );
+            useEffect(() => {
+                if (!user || view !== 'admin') return;
+                const q = FB.collection(db, 'artifacts', appId, 'public', 'data', 'responses');
+                const unsubscribe = FB.onSnapshot(q, (snapshot) => {
+                    const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    docs.sort((a, b) => b.createdAt - a.createdAt);
+                    setResponses(docs);
+                });
+                return () => unsubscribe();
+            }, [user, view]);
 
-  const TextArea = ({ label, field }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <textarea
-        className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none h-20"
-        value={formData[field] || ''}
-        onChange={(e) => handleInputChange(field, e.target.value)}
-      />
-    </div>
-  );
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
 
-  const Radio = ({ label, field, options }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-      <div className="flex flex-wrap gap-3">
-        {options.map(opt => (
-          <label key={opt} className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name={field}
-              checked={formData[field] === opt}
-              onChange={() => handleInputChange(field, opt)}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="text-sm text-gray-600">{opt}</span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
+            const submitForm = async () => {
+                if (!formData.nome) {
+                    alert("O campo Nome é obrigatório.");
+                    return;
+                }
+                setIsSubmitting(true);
+                try {
+                    const responsePath = FB.collection(db, 'artifacts', appId, 'public', 'data', 'responses');
+                    await FB.addDoc(responsePath, {
+                        ...formData,
+                        createdAt: Date.now(),
+                        clientUid: user.uid
+                    });
+                    setStep(99); 
+                } catch (err) {
+                    alert("Erro ao enviar. Verifique as regras do seu Banco de Dados.");
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
 
-  const Intensity = ({ label, field }) => (
-    <div className="mb-4 border-b pb-2">
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-      <div className="flex gap-4">
-        {["Pouca Intensidade", "Média Intensidade", "Muita Intensidade"].map(lvl => (
-          <label key={lvl} className="flex flex-1 items-center gap-1 text-xs">
-            <input 
-              type="radio" 
-              name={field} 
-              checked={formData[field] === lvl} 
-              onChange={() => handleInputChange(field, lvl)}
-            />
-            {lvl}
-          </label>
-        ))}
-      </div>
-    </div>
-  );
+            const handleAdminAction = async () => {
+                if (isFirstRun) {
+                    if (adminPasswordInput.length < 4) return alert("Mínimo 4 caracteres.");
+                    const configRef = FB.doc(db, 'artifacts', appId, 'public', 'data', 'config', 'admin');
+                    await FB.setDoc(configRef, { password: adminPasswordInput });
+                    setDbAdminPassword(adminPasswordInput);
+                    setIsFirstRun(false);
+                    setView('admin');
+                } else {
+                    if (adminPasswordInput === dbAdminPassword) setView('admin');
+                    else alert("Senha incorreta.");
+                }
+            };
 
-  if (view === 'login') {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <Lock size={20}/> {isFirstRun ? "Definir Senha Admin" : "Acesso Admin"}
-          </h2>
-          <input
-            type="password"
-            className="w-full p-2 border rounded mb-4"
-            placeholder="Digite a senha"
-            value={adminPasswordInput}
-            onChange={(e) => setAdminPasswordInput(e.target.value)}
-          />
-          <button onClick={handleAdminAction} className="w-full bg-blue-600 text-white py-2 rounded font-bold">
-            {isFirstRun ? "Salvar Senha" : "Entrar"}
-          </button>
-          <button onClick={() => setView('form')} className="w-full mt-2 text-gray-400 text-sm">Voltar</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (view === 'admin') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-          <h1 className="font-bold text-lg flex items-center gap-2"><ClipboardList/> Painel de Anamnese</h1>
-          <button onClick={() => setView('form')} className="text-red-500 flex items-center gap-1"><LogOut size={18}/> Sair</button>
-        </header>
-        <div className="flex flex-1 overflow-hidden">
-          <div className="w-64 border-r bg-white overflow-y-auto">
-            {responses.map(res => (
-              <button 
-                key={res.id} 
-                onClick={() => setSelectedResponse(res)}
-                className={`w-full text-left p-3 border-b text-sm ${selectedResponse?.id === res.id ? 'bg-blue-50' : ''}`}
-              >
-                <div className="font-bold">{res.nome}</div>
-                <div className="text-xs text-gray-400">{new Date(res.createdAt).toLocaleDateString()}</div>
-              </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            {selectedResponse ? (
-              <div className="bg-white p-6 rounded-lg shadow border">
-                <h2 className="text-xl font-bold mb-4 border-b pb-2">{selectedResponse.nome}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                  {Object.entries(selectedResponse).map(([k, v]) => {
-                    if (['id', 'createdAt', 'clientUid'].includes(k)) return null;
-                    return (
-                      <div key={k} className="border-b pb-1">
-                        <span className="text-[10px] uppercase font-bold text-blue-500 block">{k}</span>
-                        <span className="text-sm text-gray-700">{v || "---"}</span>
-                      </div>
-                    );
-                  })}
+            // Componentes Internos
+            const Input = ({ label, field, type = "text" }) => (
+                <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+                    <input
+                        type={type}
+                        className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 transition-all"
+                        value={formData[field] || ''}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                    />
                 </div>
-              </div>
-            ) : <div className="text-center text-gray-400 mt-20">Selecione uma resposta</div>}
-          </div>
-        </div>
-      </div>
-    );
-  }
+            );
 
-  return (
-    <div className="min-h-screen bg-white pb-10">
-      <nav className="border-b p-4 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
-        <span className="font-bold text-gray-800">Formulário de Anamnese</span>
-        <button onClick={() => setView('login')} className="text-gray-300 hover:text-gray-600"><Lock size={18}/></button>
-      </nav>
-
-      <div className="max-w-3xl mx-auto mt-6 px-4">
-        {step < 5 && (
-          <div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-6">
-            {/* ETAPA 0: DADOS PESSOAIS */}
-            {step === 0 && (
-              <div className="p-6">
-                <h2 className="text-lg font-bold mb-4 border-b">Dados Pessoais</h2>
-                <Input label="Nome:" field="nome" />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="RG:" field="rg" />
-                  <Input label="CPF:" field="cpf" />
+            const TextArea = ({ label, field }) => (
+                <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+                    <textarea
+                        className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-24 bg-gray-50 transition-all"
+                        value={formData[field] || ''}
+                        onChange={(e) => handleInputChange(field, e.target.value)}
+                    />
                 </div>
-                <Input label="Data de nascimento:" field="nascimento" type="date" />
-                <Input label="Estado Civil:" field="estadoCivil" />
-                <Input label="Endereço:" field="endereco" />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="Cep:" field="cep" />
-                  <Input label="Complemento:" field="complemento" />
+            );
+
+            const Radio = ({ label, field, options }) => (
+                <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+                    <div className="flex flex-wrap gap-3">
+                        {options.map(opt => (
+                            <label key={opt} className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-blue-50 transition-all">
+                                <input
+                                    type="radio"
+                                    name={field}
+                                    checked={formData[field] === opt}
+                                    onChange={() => handleInputChange(field, opt)}
+                                    className="w-4 h-4 text-blue-600"
+                                />
+                                <span className="text-sm text-gray-600">{opt}</span>
+                            </label>
+                        ))}
+                    </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="Bairro:" field="bairro" />
-                  <Input label="Cidade:" field="cidade" />
+            );
+
+            const Intensity = ({ label, field }) => (
+                <div className="mb-4 border-b pb-3 border-gray-100">
+                    <label className="block text-sm font-bold text-gray-700 mb-2">{label}</label>
+                    <div className="flex gap-2 md:gap-4">
+                        {["Pouca", "Média", "Muita"].map(lvl => (
+                            <label key={lvl} className="flex-1 flex items-center justify-center gap-1 p-2 border rounded-lg text-xs cursor-pointer hover:bg-gray-100">
+                                <input 
+                                    type="radio" 
+                                    name={field} 
+                                    checked={formData[field] === (lvl + " Intensidade")} 
+                                    onChange={() => handleInputChange(field, lvl + " Intensidade")}
+                                />
+                                {lvl}
+                            </label>
+                        ))}
+                    </div>
                 </div>
-                <Input label="UF:" field="uf" />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="Telefone Residencial:" field="telResidencial" />
-                  <Input label="Celular:" field="celular" />
+            );
+
+            if (view === 'login') {
+                return (
+                    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+                        <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Lock size={32}/>
+                            </div>
+                            <h2 className="text-2xl font-bold mb-2">
+                                {isFirstRun ? "Configurar Admin" : "Acesso Restrito"}
+                            </h2>
+                            <p className="text-gray-500 text-sm mb-6">Apenas para o terapeuta</p>
+                            <input
+                                type="password"
+                                className="w-full p-3 border rounded-xl mb-4 text-center text-lg"
+                                placeholder="Palavra-passe"
+                                value={adminPasswordInput}
+                                onChange={(e) => setAdminPasswordInput(e.target.value)}
+                            />
+                            <button onClick={handleAdminAction} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">
+                                {isFirstRun ? "Guardar Senha" : "Entrar"}
+                            </button>
+                            <button onClick={() => setView('form')} className="w-full mt-4 text-gray-400 text-sm">Voltar ao Formulário</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (view === 'admin') {
+                return (
+                    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+                        <header className="bg-white border-b p-4 px-6 flex justify-between items-center shadow-sm">
+                            <div className="flex items-center gap-2">
+                                <ClipboardList className="text-blue-600"/>
+                                <h1 className="font-black text-xl text-slate-800">Painel de Pacientes</h1>
+                            </div>
+                            <button onClick={() => setView('form')} className="bg-red-50 text-red-500 px-4 py-2 rounded-full font-bold flex items-center gap-1 hover:bg-red-100 transition-all">
+                                <LogOut size={18}/> Sair
+                            </button>
+                        </header>
+                        <div className="flex flex-1 overflow-hidden">
+                            <div className="w-72 border-r bg-white overflow-y-auto">
+                                {responses.length === 0 && <div className="p-10 text-center text-gray-400">Nenhum registo encontrado.</div>}
+                                {responses.map(res => (
+                                    <button 
+                                        key={res.id} 
+                                        onClick={() => setSelectedResponse(res)}
+                                        className={`w-full text-left p-4 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : 'hover:bg-gray-50'}`}
+                                    >
+                                        <div className="font-bold text-slate-800">{res.nome}</div>
+                                        <div className="text-xs text-gray-400 uppercase tracking-tighter mt-1">{new Date(res.createdAt).toLocaleDateString()} às {new Date(res.createdAt).toLocaleTimeString()}</div>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-slate-100">
+                                {selectedResponse ? (
+                                    <div className="bg-white p-8 rounded-3xl shadow-xl border border-white">
+                                        <div className="flex justify-between items-start mb-8 border-b pb-6">
+                                            <div>
+                                                <h2 className="text-3xl font-black text-slate-900">{selectedResponse.nome}</h2>
+                                                <p className="text-blue-600 font-medium">Ficha Individual Completa</p>
+                                            </div>
+                                            <button onClick={() => window.print()} className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold">Imprimir PDF</button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                                            {Object.entries(selectedResponse).map(([k, v]) => {
+                                                if (['id', 'createdAt', 'clientUid'].includes(k)) return null;
+                                                return (
+                                                    <div key={k} className="border-b border-gray-50 pb-2">
+                                                        <span className="text-[10px] uppercase font-black text-slate-400 block mb-1">{k.replace(/_/g, ' ')}</span>
+                                                        <span className="text-slate-700 whitespace-pre-wrap">{v || "---"}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                                            <ClipboardList size={40}/>
+                                        </div>
+                                        <p className="text-lg">Selecione um paciente na lista para visualizar</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-slate-50">
+                    <nav className="bg-white/80 backdrop-blur-md border-b p-4 px-6 flex justify-between items-center sticky top-0 z-50">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">M</div>
+                            <span className="font-black text-slate-800 tracking-tight">Anamnese Sistémica</span>
+                        </div>
+                        <button onClick={() => setView('login')} className="text-slate-300 hover:text-indigo-600 transition-colors">
+                            <Lock size={20}/>
+                        </button>
+                    </nav>
+
+                    <div className="max-w-3xl mx-auto mt-8 px-4 pb-20">
+                        {step < 5 && (
+                            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+                                {/* Indicador de Progresso */}
+                                <div className="bg-slate-900 h-1.5 flex">
+                                    <div 
+                                        className="bg-indigo-500 h-full transition-all duration-500" 
+                                        style={{ width: `${((step + 1) / 5) * 100}%` }}
+                                    ></div>
+                                </div>
+
+                                <div className="p-8 md:p-12">
+                                    {/* CABEÇALHO DA ETAPA */}
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                            {step === 0 && <User />}
+                                            {step === 1 && <Heart />}
+                                            {step === 2 && <Brain />}
+                                            {step === 3 && <Baby />}
+                                            {step === 4 && <Smile />}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-indigo-500 uppercase tracking-widest">Etapa {step + 1} de 5</p>
+                                            <h2 className="text-2xl font-black text-slate-800">
+                                                {step === 0 && "Dados de Identificação"}
+                                                {step === 1 && "Fase 01 – Vida Pessoal"}
+                                                {step === 2 && "Fase 02 – Mental"}
+                                                {step === 3 && "Fase 03 – Infância"}
+                                                {step === 4 && "Fase 04 – Emocional"}
+                                            </h2>
+                                        </div>
+                                    </div>
+
+                                    {/* CONTEÚDO DINÂMICO */}
+                                    {step === 0 && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            <Input label="Nome Completo:" field="nome" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input label="RG:" field="rg" />
+                                                <Input label="CPF:" field="cpf" />
+                                            </div>
+                                            <Input label="Data de nascimento:" field="nascimento" type="date" />
+                                            <Input label="Estado Civil:" field="estadoCivil" />
+                                            <Input label="Endereço:" field="endereco" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input label="Telemóvel:" field="celular" />
+                                                <Input label="E-mail:" field="email" type="email" />
+                                            </div>
+                                            <TextArea label="Queixa Principal – O que te trouxe até aqui?" field="queixaPrincipal" />
+                                        </div>
+                                    )}
+
+                                    {step === 1 && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            <Radio label="Estado Civil Atual?" field="estadoCivilVida" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)']} />
+                                            <TextArea label="Como é o seu relacionamento familiar?" field="relacaoFamilia" />
+                                            <Radio label="Sente que pertence à sua família?" field="pertenceFamiliar" options={['Sim', 'Não']} />
+                                            <div className="font-bold text-slate-800 mt-6 mb-2">Sente frustração em relação a:</div>
+                                            {['Pais', 'Cônjuge', 'Profissão', 'Vida Sexual'].map(it => (
+                                                <Radio key={it} label={it + "?"} field={"frustracao_"+it} options={['Sim', 'Não']} />
+                                            ))}
+                                            <Radio label="Qual o seu nível de stress atual?" field="nivelStress" options={['Alto', 'Médio', 'Baixo']} />
+                                        </div>
+                                    )}
+
+                                    {step === 2 && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            <p className="text-sm text-slate-400 italic mb-4">Quais são os tipos de pensamentos que costuma alimentar?</p>
+                                            {['Si mesma (o)', 'Passado', 'Futuro'].map(it => (
+                                                <div key={it} className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                    <Radio label={"Em relação a "+it+"?"} field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} />
+                                                    <TextArea label="Especifique os pensamentos:" field={"mental_detalhe_"+it} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {step === 3 && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            <TextArea label="Como era sua relação com seu Pai?" field="relacaoPai" />
+                                            <TextArea label="Como era sua relação com sua Mãe?" field="relacaoMae" />
+                                            <Radio label="Seus pais eram agressivos?" field="paisAgressivos" options={['Sim', 'Não']} />
+                                            <TextArea label="O que te faz sentir tristeza ao relembrar do passado?" field="tristezaPassado" />
+                                            <Radio label="Teve fase de rebeldia na adolescência?" field="rebeldia" options={['Sim', 'Não']} />
+                                        </div>
+                                    )}
+
+                                    {step === 4 && (
+                                        <div className="space-y-4 animate-in fade-in duration-500">
+                                            <TextArea label="Quais são seus maiores medos hoje?" field="medosHoje" />
+                                            <Radio label="Sente raiva ou rancor de alguém?" field="raivaAlguem" options={['Sim', 'Não']} />
+                                            
+                                            <h3 className="font-black text-slate-800 mt-8 mb-4 border-t pt-6 text-lg uppercase tracking-tight">Frequência de Sentimentos</h3>
+                                            {[
+                                                'Ansiedade', 'Tristeza', 'Medo', 'Culpa', 'Mágoa', 'Revolta'
+                                            ].map(s => <Intensity key={s} label={s} field={"sentimento_"+s} />)}
+
+                                            <button 
+                                                onClick={submitForm} 
+                                                disabled={isSubmitting}
+                                                className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black text-xl hover:bg-emerald-700 mt-10 shadow-xl transition-all flex items-center justify-center gap-3 disabled:bg-gray-400"
+                                            >
+                                                {isSubmitting ? "A Enviar..." : <><Send size={24}/> FINALIZAR CONSULTA</>}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* NAVEGAÇÃO */}
+                                    <div className="flex justify-between items-center mt-12 pt-6 border-t border-slate-100">
+                                        <button 
+                                            onClick={() => setStep(s => s - 1)} 
+                                            disabled={step === 0}
+                                            className="flex items-center gap-2 text-slate-400 font-bold hover:text-indigo-600 disabled:opacity-0 transition-all"
+                                        >
+                                            <ChevronLeft size={20}/> ANTERIOR
+                                        </button>
+                                        {step < 4 && (
+                                            <button 
+                                                onClick={() => setStep(s => s + 1)}
+                                                className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-xl font-black shadow-lg hover:bg-indigo-700 transition-all"
+                                            >
+                                                PRÓXIMO <ChevronRight size={20}/>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 99 && (
+                            <div className="bg-white p-16 rounded-3xl shadow-2xl text-center animate-in zoom-in duration-500 border border-slate-200">
+                                <div className="flex justify-center mb-6 text-emerald-500">
+                                    <CheckCircle2 size={100}/>
+                                </div>
+                                <h2 className="text-4xl font-black text-slate-900 mb-4">Consulta Concluída!</h2>
+                                <p className="text-slate-500 text-lg mb-10">As suas informações foram enviadas com segurança ao seu terapeuta.</p>
+                                <button onClick={() => {setStep(0); setFormData({});}} className="bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">
+                                    Novo Formulário
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <Input label="E-mail:" field="email" type="email" />
-                <Input label="Profissão:" field="profissao" />
-                <Input label="Empresa:" field="empresa" />
-                <Input label="Atividade:" field="atividade" />
-                <Input label="Cargo:" field="cargo" />
-                <Input label="Religião:" field="religiao" />
-                <Input label="Escolaridade:" field="escolaridade" />
-                <TextArea label="Queixa Principal – O que te trouxe até aqui?" field="queixaPrincipal" />
-              </div>
-            )}
+            );
+        };
 
-            {/* ETAPA 1: FASE 01 */}
-            {step === 1 && (
-              <div className="p-6">
-                <h2 className="text-lg font-bold mb-4 border-b">Fase 01 – Vida Pessoal</h2>
-                <Radio label="É casada (o), solteira (o) ou divorciada (o)?" field="estadoCivilVida" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)']} />
-                <TextArea label="Se é divorciada (o), por qual motivo e como se sente?" field="motivoDivorcio" />
-                <Input label="Número de filhos:" field="numFilhos" />
-                <TextArea label="Como é o seu relacionamento com seus filhos?" field="relacaoFilhos" />
-                <TextArea label="Como você se sente em seu relacionamento com sua parceira (o)?" field="sentimentoParceiro" />
-                <TextArea label="Como você se sente em sua casa, dentro do contexto familiar?" field="sentimentoCasa" />
-                <TextArea label="Como você se sente no seu trabalho?" field="sentimentoTrabalho" />
-                
-                <Radio label="Você se sente pertencendo ao Contexto Familiar?" field="pertenceFamiliar" options={['Sim', 'Não']} />
-                <TextArea label="Por quê? (Familiar)" field="pqFamiliar" />
-                
-                <Radio label="Você se sente pertencendo ao Contexto Social?" field="pertenceSocial" options={['Sim', 'Não']} />
-                <TextArea label="Por quê? (Social)" field="pqSocial" />
-                
-                <Radio label="Você se sente pertencendo ao Contexto Religioso?" field="pertenceReligioso" options={['Sim', 'Não']} />
-                <TextArea label="Por quê? (Religioso)" field="pqReligioso" />
-
-                <div className="mt-4 font-bold text-sm mb-2">Você sente frustração em relação a:</div>
-                {['Pais', 'Irmãos', 'Filhos', 'Profissão', 'Colégio', 'Cônjuge', 'Identidade Sexual', 'Vida Sexual'].map(it => (
-                  <Radio key={it} label={it + "?"} field={"frustracao_"+it} options={['Sim', 'Não']} />
-                ))}
-                <TextArea label="Por quê? (Frustrações)" field="pqFrustracao" />
-
-                <Input label="Iniciou sua sexualidade com que idade?" field="idadeSexual" />
-                <Radio label="Como foi sua primeira vez?" field="primeiraVez" options={['Traumática', 'Normal', 'Boa', 'Satisfatória']} />
-                <TextArea label="Tem tido algum problema em relação ao sexo?" field="problemaSexo" />
-                <Radio label="Atualmente sempre se realiza nas relações sexuais?" field="realizaSexo" options={['Sim', 'Não']} />
-                <Radio label="O sexo para você é algo:" field="importanciaSexo" options={['Importante', 'Sem importância', 'Muito importante']} />
-
-                {['Algum trauma', 'Alguma fobia', 'Tem medo de alguma coisa', 'Usa drogas', 'Dores de cabeça', 'Insônia', 'Tem ideias suicidas', 'Usa bebidas alcoólicas', 'É fumante', 'Está grávida'].map(it => (
-                  <div key={it} className="border-t pt-2 mt-2">
-                    <Radio label={it + "?"} field={it} options={['Sim', 'Não']} />
-                    <Input label="Qual / Detalhes / Frequência / Semanas:" field={it+"_detalhe"} />
-                  </div>
-                ))}
-                
-                <Radio label="Qual o seu nível de stress?" field="nivelStress" options={['Alto', 'Médio', 'Baixo']} />
-                <Radio label="Atualmente está tomando alguma medicação?" field="medicacao" options={['Sim', 'Não']} />
-                <Input label="Qual?" field="qualMedicacao" />
-                <Radio label="Já consultou algum tipo de psiquiatra ou psicólogo?" field="consultouPsi" options={['Sim', 'Não']} />
-                <Radio label="Se sim, foi diagnosticada (o)?" field="diagnosticado" options={['Sim', 'Não']} />
-                <Input label="Qual a quantidade de amigos que você tem?" field="qtdAmigos" />
-                <Input label="Qual seu passatempo preferido?" field="passatempo" />
-                <TextArea label="Qual a principal a crença que as pessoas possuem em relação a você que mais se repete?" field="crencaRepetida" />
-                <Radio label="Você se considera feliz?" field="feliz" options={['Sim', 'Não']} />
-                <TextArea label="Por quê?" field="pqFeliz" />
-                <TextArea label="Se você pudesse mudar alguma coisa em você, no seu modo de ser, ou agir, ou no seu comportamento atual, o que mudaria?" field="mudariaOque" />
-                <Input label="Defina o que é a vida em apenas uma frase" field="fraseVida" />
-              </div>
-            )}
-
-            {/* ETAPA 2: FASE 02 */}
-            {step === 2 && (
-              <div className="p-6">
-                <h2 className="text-lg font-bold mb-4 border-b">Fase 02 – Mental</h2>
-                <p className="text-sm text-gray-500 mb-4 italic">Quais são os tipos de pensamentos que você costuma alimentar em relação a:</p>
-                {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
-                  <div key={it} className="mb-6 p-3 bg-gray-50 rounded">
-                    <Radio label={"Em relação a "+it+"?"} field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} />
-                    <TextArea label="Quais exatamente?" field={"mental_detalhe_"+it} />
-                  </div>
-                ))}
-                <TextArea label="Qual sua visão sobre você?" field="visaoSobreSi" />
-              </div>
-            )}
-
-            {/* ETAPA 3: FASE 03 */}
-            {step === 3 && (
-              <div className="p-6">
-                <h2 className="text-lg font-bold mb-4 border-b">Fase 03 – Infância</h2>
-                <Radio label="Você foi criado pelos pais?" field="criadoPelosPais" options={['Sim', 'Não']} />
-                <TextArea label="Como é sua relação com seu Pai?" field="relacaoPai" />
-                <TextArea label="Como é sua relação com sua Mãe?" field="relacaoMae" />
-                <Radio label="Seus pais foram agressivos com você?" field="paisAgressivos" options={['Sim', 'Não']} />
-                <Radio label="Qual deles era o mais bravo?" field="maisBravo" options={['O Pai', 'A Mãe']} />
-                <Radio label="Usavam bebidas ou drogas?" field="paisDrogas" options={['Sim', 'Não']} />
-                <Radio label="Como você descreveria o relacionamento entre seus pais?" field="relacaoPaisStatus" options={['Excelente', 'Muito Bom', 'Bom', 'Regular', 'Péssimo']} />
-                <TextArea label="Por quê? (Relacionamento Pais)" field="pqRelacaoPais" />
-                <TextArea label="Quais os aspectos deste relacionamento que se assemelham, ou se repetem em sua vida hoje?" field="repeticaoVidaHoje" />
-                <TextArea label="Quais as características deste relacionamento, que você se mantém determinada (o) a não repetir? Por quê?" field="naoRepetir" />
-                <TextArea label="Quanto ao relacionamento de seus pais responda: Qual a crença que você adquiriu em relação a relacionamentos?" field="crencaRelacionamentos" />
-                
-                <Radio label="Na infância, era obrigada (o) a fazer alguma coisa que lhe desagradava?" field="obrigadaFazer" options={['Sim', 'Não']} />
-                <Radio label="Lembra-se, de alguma coisa que o magoou muito na Infância?" field="magoouInfancia" options={['Sim', 'Não']} />
-                <Radio label="Teve perdas familiares ou de amigos na Infância?" field="perdasInfancia" options={['Sim', 'Não']} />
-                <TextArea label="O que te faz sentir tristeza ao relembrar do passado?" field="tristezaPassado" />
-                <Input label="Quando criança tinha medo de que?" field="medoCrianca" />
-                <Radio label="Dormia com a luz acesa ou apagada?" field="luzDormir" options={['Acesa', 'Apagada']} />
-                <Radio label="Como foi sua adolescência?" field="adolescencia" options={['Ruim', 'Boa', 'Ótima']} />
-                <Radio label="Teve fase de rebeldia na adolescência?" field="rebeldia" options={['Sim', 'Não']} />
-                <Radio label="Com qual de seus pais você tinha mais dificuldade de relacionamento?" field="difRelacaoPais" options={['Pai', 'Mãe', 'Ambos']} />
-                
-                <Input label="Qual a Filosofia de sua família em relação ao sucesso profissional?" field="filoSuceso" />
-                <Input label="Ao dinheiro?" field="filoDinheiro" />
-                <Input label="Ao amor?" field="filoAmor" />
-                <Input label="Ao sexo?" field="filoSexo" />
-                
-                <TextArea label="O que era para você, ser uma boa (bom) menina (o)? Descreva." field="serBomMenino" />
-                <TextArea label="Como você deveria agir, ou ser para ser amada (o)?" field="serAmado" />
-                <Input label="Possui irmãos? Quantos?" field="irmaos" />
-                <TextArea label="Como é sua relação com eles?" field="relacaoIrmaos" />
-                <Radio label="Você foi uma criança introvertida ou extrovertida?" field="perfilCrianca" options={['Introvertida', 'Extrovertida']} />
-                <TextArea label="Havia dificuldades de relacionamentos com os colegas do colégio? Se sim, cite-os." field="difColegio" />
-                <TextArea label="Relate algum fato marcante em sua infância" field="fatoMarcante" />
-              </div>
-            )}
-
-            {/* ETAPA 4: FASE 04 */}
-            {step === 4 && (
-              <div className="p-6">
-                <h2 className="text-lg font-bold mb-4 border-b">Fase 04 – Emocional</h2>
-                <TextArea label="Quais são seus maiores medos hoje?" field="medosHoje" />
-                <TextArea label="O que você pensa a seu respeito?" field="pensaDeSi" />
-                <TextArea label="Como foi o seu primeiro relacionamento amoroso?" field="primeiroAmor" />
-                <Radio label="Se você avaliasse sua atuação na vida, qual papel que mais caberia a você hoje?" field="papelVida" options={['Vítima', 'Responsável']} />
-                <Input label="Qual o ganho secundário?" field="ganhoSecundario" />
-                <TextArea label="Em quais situações você desempenha o papel de vítima?" field="situacaoVitima" />
-                <TextArea label="Em quais situações você desempenha o papel de responsável?" field="situacaoResponsavel" />
-                <Radio label="Se considera vitoriosa(o) ou derrotada(o)?" field="vitoriosaDerrotada" options={['Vitoriosa(o)', 'Derrotada(o)']} />
-                <Radio label="Nos relacionamentos e na vida, você prefere ser:" field="dominanteSubmisso" options={['Dominante', 'Submisso']} />
-                <TextArea label="Quem deve ser punido por problemas que ocorrem com você? OU Quem é o culpado por seus problemas pessoais?" field="culpadoProblemas" />
-                <Radio label="Sente raiva ou rancor de alguém?" field="raivaAlguem" options={['Sim', 'Não']} />
-                <Input label="Se sim, Quem?" field="quemRaiva" />
-                <Radio label="Sente-se de alguma forma pressionada (o) na atualidade?" field="pressionada" options={['Sim', 'Não']} />
-                <TextArea label="De que maneira?" field="maneiraPressao" />
-                <Radio label="Você se acha uma pessoa controladora?" field="controladora" options={['Sim', 'Não']} />
-                <Radio label="Sente-se de alguma forma inferior aos outros?" field="inferior" options={['Sim', 'Não']} />
-                <TextArea label="Por quê?" field="pqInferior" />
-                <Radio label="Duvida de sua própria capacidade?" field="duvidaCapacidade" options={['Sim', 'Não']} />
-                <Radio label="Você é audaciosa (o), corre atrás de suas metas, ou é auto protetor(a)?" field="audaciaProtecao" options={['Audaciosa(o)', 'Auto protetor(a)']} />
-                <Radio label="Existe algo que a(o) faz sentir-se culpada(o)?" field="senteCulpa" options={['Sim', 'Não']} />
-                <TextArea label="O que exatamente?" field="oqueCulpa" />
-
-                <h3 className="font-bold mt-8 mb-4 border-t pt-4">Quais os sentimentos mais comuns em você hoje?</h3>
-                {[
-                  'Raiva', 'Medo de algo concreto', 'Medos vagos', 'Culpa', 'Revolta', 
-                  'Medo de perder o controle', 'Tristeza', 'Mágoa', 'Orgulho', 'Ódio', 
-                  'Egoísmo', 'Ansiedade', 'Intolerância', 'Submissão', 'Indecisão', 
-                  'Desespero', 'Desânimo', 'Covardia', 'Egocentrismo'
-                ].map(s => <Intensity key={s} label={s} field={"sentimento_"+s} />)}
-
-                <button 
-                  onClick={submitForm} 
-                  disabled={isSubmitting}
-                  className="w-full bg-green-600 text-white py-4 rounded-lg font-bold text-lg hover:bg-green-700 mt-6 shadow-md transition-all flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? "Enviando..." : <><Send size={20}/> Finalizar e Enviar Formulário</>}
-                </button>
-              </div>
-            )}
-
-            <div className="p-4 bg-gray-50 flex justify-between">
-              <button 
-                onClick={() => setStep(s => s - 1)} 
-                disabled={step === 0}
-                className="flex items-center gap-1 text-gray-500 disabled:opacity-0"
-              >
-                <ChevronLeft size={18}/> Anterior
-              </button>
-              {step < 4 && (
-                <button 
-                  onClick={() => setStep(s => s + 1)}
-                  className="flex items-center gap-1 bg-blue-600 text-white px-6 py-2 rounded-md font-bold"
-                >
-                  Próximo <ChevronRight size={18}/>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {step === 99 && (
-          <div className="bg-white p-12 border rounded-xl shadow-lg text-center">
-            <div className="flex justify-center mb-4 text-green-500"><CheckCircle2 size={64}/></div>
-            <h2 className="text-2xl font-bold mb-2">Formulário Enviado!</h2>
-            <p className="text-gray-500 mb-6">As informações foram salvas com sucesso no banco de dados.</p>
-            <button onClick={() => {setStep(0); setFormData({});}} className="text-blue-600 underline">Preencher novo formulário</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
