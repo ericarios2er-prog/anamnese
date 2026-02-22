@@ -180,6 +180,7 @@
 
         const APP_ID = "meu-consultorio-568f0";
         const WHATSAPP_NOTIFY = "5571999466269"; 
+        const SIER_GROWTH_WA = "5571984420194"; // Número solicitado: 71984420194
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -268,7 +269,7 @@
                     await addDoc(colRef, { ...formData, createdAt: Date.now(), uid: user.uid });
                     const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
                     await deleteDoc(draftRef);
-                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese sistêmica.\n\nNome: ${formData.nome}`);
+                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${WHATSAPP_NOTIFY}?text=${msg}`, '_blank');
                     setStep(99);
                 } catch (err) { alert("Erro ao enviar."); } 
@@ -376,7 +377,7 @@
                         fields: feelingsKeys.map(s => ({ label: s, key: "sentimento_"+s }))
                     }
                 ];
-            }, [selectedResponse]);
+            }, [selectedResponse, feelingsKeys]);
 
             if (loadingDraft && view === 'form') return (
                 <div className="min-h-screen flex items-center justify-center bg-white"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
@@ -388,7 +389,7 @@
                         <Icons.Lock />
                         <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter mt-4 italic">Acesso Administrativo</h2>
                         <input type="password" border className="w-full p-4 border-2 border-slate-100 rounded-2xl mb-6 text-center text-2xl tracking-[0.5em] outline-none focus:border-indigo-500 font-black" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="••••" />
-                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">ENTRAR</button>
+                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">ENTRAR NO PAINEL</button>
                         <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase tracking-widest hover:text-indigo-600 transition-colors">Voltar</button>
                     </div>
                 </div>
@@ -404,7 +405,6 @@
                         <button onClick={() => setView('form')} className="text-rose-500 font-black text-[10px] md:text-xs px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-rose-50 border flex items-center gap-2 hover:bg-rose-100 transition-all shadow-sm"><Icons.LogOut /> SAIR</button>
                     </header>
                     <div className="flex flex-1 overflow-hidden">
-                        {/* Sidebar: Escondida no mobile se houver um paciente selecionado */}
                         <aside className={`w-full md:w-80 border-r bg-white overflow-y-auto hide-scrollbar no-print ${selectedResponse ? 'hidden md:block' : 'block'}`}>
                             <div className="p-4 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b text-center italic">Registros Recentes</div>
                             {responses.map(res => (
@@ -415,13 +415,11 @@
                             ))}
                         </aside>
                         
-                        {/* Main Content: Escondido no mobile se NÃO houver um paciente selecionado */}
                         <main className={`flex-1 p-4 md:p-10 overflow-y-auto bg-slate-100 ${selectedResponse ? 'block' : 'hidden md:block'}`}>
                             {selectedResponse ? (
                                 <div className="print-container bg-white p-6 md:p-12 rounded-[2.5rem] md:rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in relative">
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b pb-6 no-print gap-4">
                                         <div className="w-full md:w-auto">
-                                            {/* Botão Voltar exclusivo para mobile */}
                                             <button onClick={() => setSelectedResponse(null)} className="md:hidden text-indigo-600 font-black text-[10px] uppercase mb-4 flex items-center gap-1 hover:underline">
                                                 <Icons.Left /> Voltar para Lista
                                             </button>
@@ -433,7 +431,7 @@
                                     </div>
                                     
                                     <div className="hidden print:block text-center mb-6 border-b-2 border-slate-900 pb-2">
-                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE SISTÊMICA</h1>
+                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900"> ANAMNESE </h1>
                                         <div className="flex justify-between mt-2 text-[8px] font-bold text-slate-500 uppercase px-2">
                                             <span>Paciente: {selectedResponse.nome}</span>
                                             <span>{new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
@@ -488,11 +486,11 @@
                         </button>
                     </nav>
 
-                    <div className="max-w-3xl mx-auto mt-6 px-4">
+                    <div className="max-w-4xl mx-auto mt-10 px-6">
                         {step < 5 && (
-                            <div className="bg-white rounded-[3rem] shadow-2xl shadow-indigo-100 overflow-hidden border border-indigo-50 fade-in">
+                            <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100 fade-in">
                                 <div className="h-2 bg-slate-100 w-full overflow-hidden"><div className="bg-indigo-600 h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(79,70,229,0.3)]" style={{ width: `${(step + 1) * 20}%` }}></div></div>
-                                <div className="p-6 md:p-12 card-padding">
+                                <div className="p-10 md:p-20 card-padding">
                                     {step === 0 && (
                                         <div className="fade-in">
                                             <h2 className="text-3xl font-black text-slate-800 leading-none tracking-tight mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Dados Pessoais</h2>
@@ -501,7 +499,6 @@
                                                 <InputField label="RG:" field="rg" value={formData.rg} onChange={handleInputChange} />
                                                 <InputField label="CPF:" field="cpf" value={formData.cpf} onChange={handleInputChange} />
                                             </div>
-                                            {/* Ajuste: Agora é um campo de texto manual para facilitar o ano de nascimento no mobile */}
                                             <InputField label="Data de nascimento:" field="nascimento" placeholder="DD/MM/AAAA" value={formData.nascimento} onChange={handleInputChange} />
                                             <InputField label="Estado Civil:" field="estadoCivil" value={formData.estadoCivil} onChange={handleInputChange} />
                                             <InputField label="Endereço:" field="endereco" value={formData.endereco} onChange={handleInputChange} />
@@ -532,7 +529,6 @@
                                         </div>
                                     )}
 
-                                    {/* FASES 1 A 4 - PERGUNTAS MANTIDAS INTEGRALMENTE */}
                                     {step === 1 && (
                                         <div className="fade-in">
                                             <h2 className="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 01 – Vida Pessoal</h2>
@@ -543,8 +539,8 @@
                                             <TextAreaField label="Como você se sente em seu relacionamento com sua parceira (o)?" field="sentimentoParceiro" value={formData.sentimentoParceiro} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente em sua casa, dentro do contexto familiar?" field="sentimentoCasa" value={formData.sentimentoCasa} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente no seu trabalho?" field="sentimentoTrabalho" value={formData.sentimentoTrabalho} onChange={handleInputChange} />
-                                            <div className="my-8 p-6 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-inner">
-                                                <p className="font-black text-indigo-900 text-[10px] uppercase mb-4 tracking-widest text-center italic">Pertencimento</p>
+                                            <div className="my-10 p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-inner">
+                                                <p className="font-black text-indigo-900 text-[10px] uppercase mb-6 tracking-widest text-center italic">Sentimento de Pertencimento</p>
                                                 <RadioField label="Você se sente pertencendo ao Contexto Familiar?" field="pertenceFamiliar" options={['Sim', 'Não']} value={formData.pertenceFamiliar} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê? (Família)" field="pqFamiliar" value={formData.pqFamiliar} onChange={handleInputChange} />
                                                 <RadioField label="Você se sente pertencendo ao Contexto Social?" field="pertenceSocial" options={['Sim', 'Não']} value={formData.pertenceSocial} onChange={handleInputChange} />
@@ -553,7 +549,7 @@
                                                 <TextAreaField label="Por quê? (Religioso)" field="pqReligioso" value={formData.pqReligioso} onChange={handleInputChange} />
                                             </div>
                                             <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter italic">Você sente frustração em relação a:</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
                                                 {['Pais', 'Irmãos', 'Filhos', 'Profissão', 'Colégio', 'Cônjuge', 'Identidade Sexual', 'Vida Sexual'].map(item => (
                                                     <RadioField key={item} label={item + "?"} field={"frustracao_"+item} options={['Sim', 'Não']} value={formData["frustracao_"+item]} onChange={handleInputChange} />
                                                 ))}
@@ -566,7 +562,7 @@
                                         <div className="fade-in">
                                             <h2 className="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
                                             {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
-                                                <div key={it} className="mb-8 p-6 border rounded-[2.5rem] bg-white shadow-sm">
+                                                <div key={it} className="mb-10 p-8 border-2 border-slate-50 rounded-[2.5rem] bg-white shadow-sm hover:shadow-md transition-shadow">
                                                     <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic underline decoration-indigo-200">Em relação a {it}:</p>
                                                     <RadioField label="Tipos de pensamentos:" field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} value={formData["mental_tipo_"+it]} onChange={handleInputChange} />
                                                     <TextAreaField label="Quais exatamente?" field={"mental_detalhe_"+it} value={formData["mental_detalhe_"+it]} onChange={handleInputChange} />
@@ -648,13 +644,20 @@
                         {step === 99 && (
                             <div className="bg-white p-20 rounded-[4rem] shadow-2xl text-center fade-in border border-slate-100">
                                 <div className="flex justify-center mb-10 text-emerald-500 shadow-inner rounded-full p-4 inline-block mx-auto"><Icons.Check /></div>
-                                <h2 className="text-4xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Enviado com Sucesso!</h2>
+                                <h2 className="text-5xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Enviado com Sucesso!</h2>
                                 <p className="text-slate-400 text-xl mb-12 font-medium max-w-sm mx-auto uppercase italic">Obrigado! Suas informações foram salvas com total sigilo.</p>
                                 <button onClick={() => {setStep(0); setFormData({}); window.location.reload();}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">Novo Formulário</button>
                             </div>
                         )}
                     </div>
-                    <footer className="mt-16 text-center text-slate-200 text-[10px] font-black uppercase tracking-[0.5em] pb-12 italic no-print">Confidencial &copy; 2026</footer>
+                    <footer className="mt-16 text-center pb-12 no-print">
+                        <div className="mb-1 text-[11px] font-bold text-slate-500">
+                            Tecnologia <a href={`https://wa.me/${SIER_GROWTH_WA}?text=${window.encodeURIComponent("vi esse formulário quero fazer o meu.")}`} target="_blank" className="text-orange-500 font-black hover:text-orange-600 transition-colors">Sier Growth</a>
+                        </div>
+                        <div className="text-slate-200 text-[10px] font-black uppercase tracking-[0.5em] italic">
+                            Confidencial &copy; 2026
+                        </div>
+                    </footer>
                 </div>
             );
         };
