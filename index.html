@@ -236,7 +236,7 @@
                     await addDoc(colRef, { ...formData, createdAt: Date.now(), uid: user.uid });
                     const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
                     await deleteDoc(draftRef);
-                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese sistêmica.\n\nNome: ${formData.nome}`);
+                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${WHATSAPP_NOTIFY}?text=${msg}`, '_blank');
                     setStep(99);
                 } catch (err) { alert("Erro ao enviar."); } 
@@ -393,7 +393,7 @@
                                     </div>
                                     
                                     <div className="hidden print:block text-center mb-6 border-b-2 border-slate-900 pb-2">
-                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE SISTÊMICA</h1>
+                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">ANAMNESE</h1>
                                         <div className="flex justify-between mt-2 text-[8px] font-bold text-slate-500 uppercase px-2">
                                             <span>Paciente: {selectedResponse.nome}</span>
                                             <span>{new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
@@ -648,3 +648,4 @@
     </script>
 </body>
 </html>
+
