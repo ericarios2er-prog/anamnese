@@ -17,21 +17,23 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         @media print { 
-            .no-print { display: none !important; } 
-            body { background: white !important; padding: 0 !important; }
+            /* Ocultar tudo por padrão na impressão */
+            body * { visibility: hidden; }
+            /* Mostrar apenas o container de impressão e os seus filhos */
+            .print-container, .print-container * { visibility: visible !important; }
+            /* Posicionar o container no topo da página */
             .print-container { 
-                box-shadow: none !important; 
-                border: none !important; 
-                margin: 0 !important; 
-                padding: 20px !important; 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
                 width: 100% !important; 
-                max-width: 100% !important;
-                display: block !important;
+                margin: 0 !important; 
+                padding: 10px !important; 
+                box-shadow: none !important;
+                border: none !important;
             }
-            .section-break { page-break-inside: avoid; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
-            h2, h3 { color: black !important; border-bottom: 1px solid #000 !important; }
-            aside, nav, button, .progress-bar { display: none !important; }
-            main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+            .section-break { page-break-inside: avoid; border-bottom: 1px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
@@ -133,10 +135,11 @@
             Check: () => <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>,
             Clipboard: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /></svg>,
             LogOut: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>,
-            Printer: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+            Printer: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>,
+            Calendar: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
         };
 
-        const WHATSAPP_NOTIFY = "5500000000000"; // COLOQUE SEU NÚMERO AQUI
+        const WHATSAPP_NOTIFY = "5571999466269"; // COLOQUE SEU NÚMERO AQUI
         const APP_ID = "meu-consultorio-568f0";
 
         const App = () => {
@@ -154,7 +157,6 @@
 
             const { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, deleteDoc, signInAnonymously, onAuthStateChanged } = window.FB;
 
-            // 1. Auth e Carregamento de Rascunho
             useEffect(() => {
                 const init = async () => {
                     await signInAnonymously(auth).catch(console.error);
@@ -180,18 +182,17 @@
                 finally { setLoadingDraft(false); }
             };
 
-            // 2. Salvamento Automático (Persistência)
+            // Salvamento Automático
             useEffect(() => {
                 if (!user || loadingDraft || step === 99) return;
                 const save = async () => {
                     const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
                     await setDoc(draftRef, { formData, step, updatedAt: Date.now() }, { merge: true });
                 };
-                const timer = setTimeout(save, 1000); // Debounce de 1 segundo
+                const timer = setTimeout(save, 1000);
                 return () => clearTimeout(timer);
             }, [formData, step, user, loadingDraft]);
 
-            // 3. Admin Config
             useEffect(() => {
                 if (!user) return;
                 const checkAdmin = async () => {
@@ -205,7 +206,6 @@
                 checkAdmin();
             }, [user]);
 
-            // 4. Admin Listener
             useEffect(() => {
                 if (!user || view !== 'admin') return;
                 const q = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
@@ -224,19 +224,13 @@
                 if (!formData.nome) return alert("Por favor, preencha seu nome.");
                 setIsSubmitting(true);
                 try {
-                    // Salvar resposta final
                     const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
                     await addDoc(colRef, { ...formData, createdAt: Date.now(), uid: user.uid });
-                    
-                    // Limpar rascunho
                     const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
                     await deleteDoc(draftRef);
-
                     const msg = window.encodeURIComponent(`Olá! Finalizei o preenchimento da minha ficha de anamnese sistêmica.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${WHATSAPP_NOTIFY}?text=${msg}`, '_blank');
-                    
                     setStep(99);
-                    window.scrollTo(0,0);
                 } catch (err) { alert("Erro ao salvar dados."); } 
                 finally { setIsSubmitting(false); }
             };
@@ -252,39 +246,35 @@
                 }
             };
 
-            // Grupos de campos para exibir TUDO no Admin
-            const getAllFields = () => {
+            // Grupos de campos para exibir TUDO no Admin (Sem filtros)
+            const getAllSections = () => {
                 if (!selectedResponse) return [];
-                // Identifica chaves que não são metadados e agrupa logicamente
                 const keys = Object.keys(selectedResponse).filter(k => !['id', 'createdAt', 'uid'].includes(k));
                 
                 return [
-                    { title: "Identificação e Dados Pessoais", keys: keys.filter(k => !k.includes('_') && !['queixaPrincipal'].includes(k)) },
-                    { title: "Queixa Principal", keys: ['queixaPrincipal'] },
-                    { title: "Fase 01 - Vida Pessoal", keys: keys.filter(k => k.startsWith('status') || k.startsWith('motivo') || k.startsWith('relacao') || k.startsWith('sentimento') || k.startsWith('pertence') || k.startsWith('pq') || k.startsWith('frustracao') || k.startsWith('idade') || k.startsWith('primeira') || k.startsWith('quest') || k.startsWith('detalhe')) },
-                    { title: "Fase 02 - Mental", keys: keys.filter(k => k.startsWith('mental')) },
-                    { title: "Fase 03 - Infância", keys: keys.filter(k => k.startsWith('criado') || k.startsWith('infancia') || k.startsWith('pais') || k.startsWith('mais') || k.startsWith('repeticao') || k.startsWith('naoRepetir') || k.startsWith('crença') || k.startsWith('tristeza') || k.startsWith('medo') || k.startsWith('luz') || k.startsWith('qualidade') || k.startsWith('rebeldia') || k.startsWith('dif') || k.startsWith('filosofia') || k.startsWith('ser') || k.startsWith('como') || k.startsWith('possui') || k.startsWith('qtd') || k.startsWith('perfil') || k.startsWith('fato')) },
-                    { title: "Fase 04 - Emocional", keys: keys.filter(k => k.startsWith('medos') || k.startsWith('pensa') || k.startsWith('papel') || k.startsWith('ganho') || k.startsWith('situacao') || k.startsWith('vitoria') || k.startsWith('dominante') || k.startsWith('quem') || k.startsWith('pressionada') || k.startsWith('controladora') || k.startsWith('inferior') || k.startsWith('duvida') || k.startsWith('oque') || k.startsWith('sentimento_')) }
+                    { title: "DADOS PESSOAIS", keys: keys.filter(k => [
+                        'nome', 'rg', 'cpf', 'nascimento', 'estadoCivil', 'endereco', 'cep', 'complemento', 'bairro', 'cidade', 
+                        'telResidencial', 'celular', 'email', 'profissao', 'empresa', 'atividade', 'cargo', 'religiao', 'escolaridade', 'queixaPrincipal'
+                    ].includes(k)) },
+                    { title: "FASE 01 - VIDA PESSOAL", keys: keys.filter(k => k.startsWith('statusCivilFase1') || k.startsWith('motivoDivorcio') || k.startsWith('numFilhos') || k.startsWith('relacaoFilhos') || k.startsWith('sentimento') || k.startsWith('pertence') || k.startsWith('pq') || k.startsWith('frustracao') || k.startsWith('idade') || k.startsWith('primeira') || k.startsWith('problemaSexo') || k.startsWith('realizacaoSexual') || k.startsWith('importanciaSexo') || k.startsWith('quest_') || k.startsWith('detalhe_') || k.startsWith('estaGravida') || k.startsWith('semanas') || k.startsWith('nivelStress') || k.startsWith('tomaMedicao') || k.startsWith('qualMedicao') || k.startsWith('consultouPsi') || k.startsWith('foiDiagnostico') || k.startsWith('qtdAmigos') || k.startsWith('passatempo') || k.startsWith('crençaRepete') || k.startsWith('consideraFeliz') || k.startsWith('mudariaEmSi') || k.startsWith('definicaoVida')) },
+                    { title: "FASE 02 - MENTAL", keys: keys.filter(k => k.startsWith('mental_')) },
+                    { title: "FASE 03 - INFÂNCIA", keys: keys.filter(k => k.startsWith('criado') || k.startsWith('relacaoPai') || k.startsWith('relacaoMae') || k.startsWith('paisAgressivos') || k.startsWith('maisBravo') || k.startsWith('paisDrogas') || k.startsWith('relacaoPaisQualidade') || k.startsWith('pqRelacaoPais') || k.startsWith('repeticaoRelacao') || k.startsWith('naoRepetirRelacao') || k.startsWith('pqNaoRepetir') || k.startsWith('crençaAdquirida') || k.startsWith('infancia_') || k.startsWith('tristezaPassado') || k.startsWith('medoCrianca') || k.startsWith('luzSono') || k.startsWith('qualidadeAdolescencia') || k.startsWith('rebeldiaAdolescencia') || k.startsWith('dificuldade') || k.startsWith('filosofia_') || k.startsWith('serBomMenino') || k.startsWith('comoSerAmada') || k.startsWith('possuiIrmaos') || k.startsWith('qtdIrmaos') || k.startsWith('relacaoIrmaos') || k.startsWith('perfilCrianca') || k.startsWith('fatoMarcanteInfancia')) },
+                    { title: "FASE 04 - EMOCIONAL", keys: keys.filter(k => k.startsWith('medosHoje') || k.startsWith('pensaDeSi') || k.startsWith('primeiraRelacaoAmor') || k.startsWith('papelVida') || k.startsWith('ganhoSecundario') || k.startsWith('situacaoVitima') || k.startsWith('situacaoResponsavel') || k.startsWith('vitoriaDerrota') || k.startsWith('dominanteSubmisso') || k.startsWith('quemCulpado') || k.startsWith('raivaAlguem') || k.startsWith('quemRaiva') || k.startsWith('pressionadaAtual') || k.startsWith('comoPressionada') || k.startsWith('controladora') || k.startsWith('inferior') || k.startsWith('pqInferior') || k.startsWith('duvidaCapacidade') || k.startsWith('perfilAudacia') || k.startsWith('sentimentoCulpaQuest') || k.startsWith('oqueCulpa') || k.startsWith('sentimento_')) }
                 ];
             };
 
             if (loadingDraft && view === 'form') return (
-                <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                    <div className="animate-pulse flex flex-col items-center">
-                        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="mt-4 font-bold text-slate-400 uppercase tracking-widest text-xs">Recuperando seu progresso...</p>
-                    </div>
-                </div>
+                <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div></div>
             );
 
             if (view === 'login') return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 no-print">
+                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
                     <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border">
                         <div className="flex justify-center text-indigo-600 mb-4"><Icons.Lock /></div>
-                        <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter">{isFirstRun ? "Configurar Senha" : "Área Administrativa"}</h2>
+                        <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter">{isFirstRun ? "Configurar Chave" : "Área Restrita"}</h2>
                         <input type="password" border className="w-full p-4 border-2 border-slate-100 rounded-2xl mb-6 text-center text-2xl tracking-[0.5em] outline-none focus:border-indigo-500 font-black" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="••••" />
-                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">ENTRAR NO PAINEL</button>
-                        <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase tracking-widest">Voltar ao Site</button>
+                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">ENTRAR</button>
+                        <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase tracking-widest">Voltar</button>
                     </div>
                 </div>
             );
@@ -294,17 +284,17 @@
                     <header className="bg-white border-b p-5 px-8 flex justify-between items-center sticky top-0 z-50 no-print">
                         <div className="flex items-center gap-3">
                             <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><Icons.Clipboard /></div>
-                            <h1 className="font-black text-2xl text-slate-800 tracking-tighter uppercase">Painel de Pacientes</h1>
+                            <h1 className="font-black text-2xl text-slate-800 tracking-tighter uppercase">Painel Administrativo</h1>
                         </div>
                         <button onClick={() => setView('form')} className="text-rose-500 font-black text-xs px-6 py-2.5 rounded-full bg-rose-50 flex items-center gap-2 hover:bg-rose-100 transition-all"><Icons.LogOut /> SAIR</button>
                     </header>
                     <div className="flex flex-1 overflow-hidden">
                         <aside className="w-80 border-r bg-white overflow-y-auto hide-scrollbar no-print">
-                            <div className="p-4 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">Pacientes Recentes</div>
+                            <div className="p-4 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b text-center">Fichas Recebidas</div>
                             {responses.map(res => (
                                 <button key={res.id} onClick={() => setSelectedResponse(res)} className={`w-full text-left p-6 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600 shadow-inner' : 'hover:bg-slate-50'}`}>
-                                    <div className="font-bold text-slate-900 leading-tight">{res.nome || "Paciente Sem Nome"}</div>
-                                    <div className="text-[10px] text-slate-400 font-black uppercase mt-1 tracking-tighter">{new Date(res.createdAt).toLocaleDateString()}</div>
+                                    <div className="font-bold text-slate-900 leading-tight">{res.nome || "Anónimo"}</div>
+                                    <div className="text-[10px] text-slate-400 font-black uppercase mt-1 flex items-center gap-1.5"><Icons.Calendar /> {new Date(res.createdAt).toLocaleDateString()}</div>
                                 </button>
                             ))}
                         </aside>
@@ -312,52 +302,38 @@
                             {selectedResponse ? (
                                 <div className="print-container bg-white p-8 md:p-14 rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in">
                                     <div className="flex justify-between items-center mb-10 border-b pb-8 no-print">
-                                        <div>
-                                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1 block">Ficha Clínica Profissional</span>
-                                            <h2 className="text-3xl font-black text-slate-900 leading-none tracking-tighter">{selectedResponse.nome}</h2>
-                                        </div>
-                                        <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-black transition-all">
+                                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{selectedResponse.nome}</h2>
+                                        <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-black transition-all shadow-xl">
                                             <Icons.Printer /> IMPRIMIR ANAMNESE
                                         </button>
                                     </div>
                                     
-                                    {/* CABEÇALHO EXCLUSIVO PARA IMPRESSÃO */}
-                                    <div className="hidden print:block text-center mb-10 border-b-4 border-slate-900 pb-6">
-                                        <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">Prontuário de Anamnese Sistêmica</h1>
-                                        <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-500 uppercase">
-                                            <span>Paciente: {selectedResponse.nome}</span>
-                                            <span>Data: {new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
-                                        </div>
+                                    <div className="hidden print:block text-center mb-8 border-b-4 border-slate-900 pb-6">
+                                        <h1 className="text-2xl font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE SISTÊMICA</h1>
+                                        <p className="text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-widest">Paciente: {selectedResponse.nome} | Data: {new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</p>
                                     </div>
 
-                                    {getAllFields().map(group => {
-                                        const validKeys = group.keys.filter(k => selectedResponse[k] !== undefined && selectedResponse[k] !== "");
-                                        if (validKeys.length === 0) return null;
-                                        return (
-                                            <div key={group.title} className="section-break mb-10">
-                                                <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 border-l-4 border-indigo-600 pl-3 bg-slate-50 py-2">{group.title}</h3>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                                                    {validKeys.map(k => (
-                                                        <div key={k} className="flex flex-col border-b border-slate-50 pb-2">
-                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                                                                {k.replace('sentimento_', '').replace('quest_', '').replace('infancia_', '').replace('filosofia_', '').replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}
-                                                            </span>
-                                                            <span className="text-[13px] text-slate-800 font-semibold leading-relaxed whitespace-pre-wrap">{selectedResponse[k]}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                    {getAllSections().map(section => (
+                                        <div key={section.title} className="section-break mb-12">
+                                            <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.3em] mb-8 border-l-4 border-indigo-600 pl-4 bg-slate-50 py-3">{section.title}</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                                                {section.keys.map(k => (
+                                                    <div key={k} className="flex flex-col border-b border-slate-100 pb-3">
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.1em] mb-1.5">{k.replace('sentimento_', '').replace('quest_', '').replace('infancia_', '').replace('filosofia_', '').replace('mental_', '').replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()}</span>
+                                                        <span className="text-[12px] text-slate-800 font-bold leading-relaxed whitespace-pre-wrap">{selectedResponse[k] || "—"}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
 
-                                    <footer className="mt-16 pt-8 border-t-2 border-slate-100 hidden print:block text-center">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-300">Documento Confidencial - Anamnese Sistêmica - © 2024</p>
+                                    <footer className="mt-16 pt-8 border-t hidden print:block text-center">
+                                        <p className="text-[8px] font-black uppercase tracking-[0.6em] text-slate-300">Confidencial - Anamnese Terapêutica Sistêmica © 2024</p>
                                     </footer>
                                 </div>
                             ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-200">
-                                    <Icons.Clipboard />
-                                    <p className="mt-4 font-black uppercase text-sm tracking-widest">Selecione um prontuário para análise</p>
+                                <div className="h-full flex flex-col items-center justify-center text-slate-200 uppercase tracking-widest">
+                                    <Icons.Clipboard /><p className="mt-4 font-black text-xs">Selecione uma ficha para iniciar</p>
                                 </div>
                             )}
                         </main>
@@ -372,7 +348,7 @@
                             <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100">A</div>
                             <span className="font-black text-slate-800 text-xl tracking-tighter uppercase">Anamnese Sistêmica</span>
                         </div>
-                        <button onClick={() => setView('login')} className="opacity-[0.05] hover:opacity-100 transition-all p-3 text-indigo-600">
+                        <button onClick={() => setView('login')} className="opacity-[0.05] hover:opacity-100 transition-all p-3 text-indigo-600 hover:bg-slate-50 rounded-full" title="Área Restrita">
                             <Icons.Lock />
                         </button>
                     </nav>
@@ -435,16 +411,16 @@
                                             <TextAreaField label="Como você se sente no seu trabalho?" field="sentimentoTrabalho" value={formData.sentimentoTrabalho} onChange={handleInputChange} />
                                             
                                             <div className="my-10 p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                                                <p className="font-black text-indigo-900 text-xs uppercase mb-6 tracking-widest text-center italic">Sentimento de Pertencimento</p>
+                                                <p className="font-black text-indigo-900 text-[10px] uppercase mb-6 tracking-widest text-center italic">Sentimento de Pertencimento</p>
                                                 <RadioField label="Você se sente pertencendo ao Contexto Familiar?" field="pertenceFamiliar" options={['Sim', 'Não']} value={formData.pertenceFamiliar} onChange={handleInputChange} />
-                                                <TextAreaField label="Por quê?" field="pqFamiliar" value={formData.pqFamiliar} onChange={handleInputChange} />
+                                                <TextAreaField label="Por quê? (Familiar)" field="pqFamiliar" value={formData.pqFamiliar} onChange={handleInputChange} />
                                                 <RadioField label="Você se sente pertencendo ao Contexto Social?" field="pertenceSocial" options={['Sim', 'Não']} value={formData.pertenceSocial} onChange={handleInputChange} />
-                                                <TextAreaField label="Por quê?" field="pqSocial" value={formData.pqSocial} onChange={handleInputChange} />
+                                                <TextAreaField label="Por quê? (Social)" field="pqSocial" value={formData.pqSocial} onChange={handleInputChange} />
                                                 <RadioField label="Você se sente pertencendo ao Contexto Religioso?" field="pertenceReligioso" options={['Sim', 'Não']} value={formData.pertenceReligioso} onChange={handleInputChange} />
-                                                <TextAreaField label="Por quê?" field="pqReligioso" value={formData.pqReligioso} onChange={handleInputChange} />
+                                                <TextAreaField label="Por quê? (Religioso)" field="pqReligioso" value={formData.pqReligioso} onChange={handleInputChange} />
                                             </div>
 
-                                            <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter italic">Você sente frustração em relação a:</p>
+                                            <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter italic underline decoration-rose-500">Frustrações</p>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
                                                 {['Pais', 'Irmãos', 'Filhos', 'Profissão', 'Colégio', 'Cônjuge', 'Identidade Sexual', 'Vida Sexual'].map(item => (
                                                     <RadioField key={item} label={item + "?"} field={"frustracao_"+item} options={['Sim', 'Não']} value={formData["frustracao_"+item]} onChange={handleInputChange} />
@@ -478,10 +454,10 @@
                                                 <RadioField label="Se sim, foi diagnosticada (o)?" field="foiDiagnostico" options={['Sim', 'Não']} value={formData.foiDiagnostico} onChange={handleInputChange} />
                                                 <InputField label="Qual a quantidade de amigos que você tem?" field="qtdAmigos" value={formData.qtdAmigos} onChange={handleInputChange} />
                                                 <InputField label="Qual seu passatempo preferido?" field="passatempo" value={formData.passatempo} onChange={handleInputChange} />
-                                                <TextAreaField label="Qual a principal a crença que as pessoas possuem em relação a você que mais se repete?" field="crençaRepete" value={formData.crençaRepete} onChange={handleInputChange} />
+                                                <TextAreaField label="Qual a crença que as pessoas possuem em relação a você?" field="crençaRepete" value={formData.crençaRepete} onChange={handleInputChange} />
                                                 <RadioField label="Você se considera feliz?" field="consideraFeliz" options={['Sim', 'Não']} value={formData.consideraFeliz} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê?" field="pqFeliz" value={formData.pqFeliz} onChange={handleInputChange} />
-                                                <TextAreaField label="Se você pudesse mudar alguma coisa em você, no seu modo de ser, ou agir, o que mudaria?" field="mudariaEmSi" value={formData.mudariaEmSi} onChange={handleInputChange} />
+                                                <TextAreaField label="Se pudesse mudar algo em você, o que mudaria?" field="mudariaEmSi" value={formData.mudariaEmSi} onChange={handleInputChange} />
                                                 <InputField label="Defina o que é a vida em apenas uma frase" field="definicaoVida" value={formData.definicaoVida} onChange={handleInputChange} />
                                             </div>
                                         </div>
@@ -492,9 +468,9 @@
                                         <div className="fade-in">
                                             <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
                                             {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
-                                                <div key={it} className="mb-10 p-8 border-2 border-slate-50 rounded-[2.5rem] bg-white shadow-sm hover:shadow-md transition-shadow">
+                                                <div key={it} className="mb-10 p-8 border-2 border-slate-50 rounded-[2.5rem] bg-white shadow-sm">
                                                     <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic">Em relação a {it}:</p>
-                                                    <RadioField label="Tipos de pensamentos:" field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} value={formData["mental_tipo_"+it]} onChange={handleInputChange} />
+                                                    <RadioField label="Pensamentos:" field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} value={formData["mental_tipo_"+it]} onChange={handleInputChange} />
                                                     <TextAreaField label="Quais exatamente?" field={"mental_detalhe_"+it} value={formData["mental_detalhe_"+it]} onChange={handleInputChange} />
                                                 </div>
                                             ))}
@@ -516,23 +492,23 @@
                                                 <RadioField label="Qual deles era o mais bravo?" field="maisBravo" options={['O Pai', 'A Mãe']} value={formData.maisBravo} onChange={handleInputChange} />
                                             </div>
                                             <RadioField label="Usavam bebidas ou drogas?" field="paisDrogas" options={['Sim', 'Não']} value={formData.paisDrogas} onChange={handleInputChange} />
-                                            <RadioField label="Como descreveria o relacionamento entre seus pais?" field="relacaoPaisQualidade" options={['Excelente', 'Muito Bom', 'Bom', 'Regular', 'Péssimo']} value={formData.relacaoPaisQualidade} onChange={handleInputChange} />
+                                            <RadioField label="Relacionamento entre seus pais?" field="relacaoPaisQualidade" options={['Excelente', 'Muito Bom', 'Bom', 'Regular', 'Péssimo']} value={formData.relacaoPaisQualidade} onChange={handleInputChange} />
                                             <TextAreaField label="Por quê?" field="pqRelacaoPais" value={formData.pqRelacaoPais} onChange={handleInputChange} />
-                                            <TextAreaField label="Quais os aspectos deste relacionamento que se assemelham, ou se repetem em sua vida hoje?" field="repeticaoRelacao" value={formData.repeticaoRelacao} onChange={handleInputChange} />
-                                            <TextAreaField label="Quais as características deste relacionamento, que você se mantém determinada (o) a não repetir?" field="naoRepetirRelacao" value={formData.naoRepetirRelacao} onChange={handleInputChange} />
+                                            <TextAreaField label="O que dessa relação se repete hoje?" field="repeticaoRelacao" value={formData.repeticaoRelacao} onChange={handleInputChange} />
+                                            <TextAreaField label="O que está determinado a não repetir?" field="naoRepetirRelacao" value={formData.naoRepetirRelacao} onChange={handleInputChange} />
                                             <TextAreaField label="Por quê?" field="pqNaoRepetir" value={formData.pqNaoRepetir} onChange={handleInputChange} />
-                                            <TextAreaField label="Qual a crença que você adquiriu em relação a relacionamentos?" field="crençaAdquirida" value={formData.crençaAdquirida} onChange={handleInputChange} />
+                                            <TextAreaField label="Crença adquirida sobre relacionamentos?" field="crençaAdquirida" value={formData.crençaAdquirida} onChange={handleInputChange} />
                                             
                                             <div className="space-y-8 mt-10 border-t pt-10">
-                                                {['Na infância, era obrigada (o) a fazer algo desagradável', 'Lembra-se de algo que a magoou muito na Infância', 'Teve perdas familiares ou de amigos na Infância'].map(q => (
-                                                    <RadioField key={q} label={q + "?"} field={"infancia_"+q} options={['Sim', 'Não']} value={formData["infancia_"+q]} onChange={handleInputChange} />
-                                                ))}
+                                                <RadioField label="Era obrigada (o) a fazer algo desagradável?" field="infancia_obrigada" options={['Sim', 'Não']} value={formData.infancia_obrigada} onChange={handleInputChange} />
+                                                <RadioField label="Algo que a magoou muito na Infância?" field="infancia_magoou" options={['Sim', 'Não']} value={formData.infancia_magoou} onChange={handleInputChange} />
+                                                <RadioField label="Perdas familiares ou amigos na Infância?" field="infancia_perdas" options={['Sim', 'Não']} value={formData.infancia_perdas} onChange={handleInputChange} />
                                                 <TextAreaField label="O que te faz sentir tristeza ao relembrar do passado?" field="tristezaPassado" value={formData.tristezaPassado} onChange={handleInputChange} />
                                                 <InputField label="Quando criança tinha medo de que?" field="medoCrianca" value={formData.medoCrianca} onChange={handleInputChange} />
                                                 <RadioField label="Dormia com a luz acesa ou apagada?" field="luzSono" options={['Acesa', 'Apagada']} value={formData.luzSono} onChange={handleInputChange} />
                                                 <RadioField label="Como foi sua adolescência?" field="qualidadeAdolescencia" options={['Ruim', 'Boa', 'Ótima']} value={formData.qualidadeAdolescencia} onChange={handleInputChange} />
-                                                <RadioField label="Teve fase de rebeldia na adolescência?" field="rebeldiaAdolescencia" options={['Sim', 'Não']} value={formData.rebeldiaAdolescencia} onChange={handleInputChange} />
-                                                <RadioField label="Com qual de seus pais você tinha mais dificuldade de relacionamento?" field="dificuldadePais" options={['Pai', 'Mãe']} value={formData.dificuldadePais} onChange={handleInputChange} />
+                                                <RadioField label="Teve fase de rebeldia?" field="rebeldiaAdolescencia" options={['Sim', 'Não']} value={formData.rebeldiaAdolescencia} onChange={handleInputChange} />
+                                                <RadioField label="Maior dificuldade de relacionamento com qual progenitor?" field="dificuldadeProgenitor" options={['Pai', 'Mãe']} value={formData.dificuldadeProgenitor} onChange={handleInputChange} />
                                             </div>
 
                                             <div className="mt-12 p-10 bg-slate-50 rounded-[3rem] border">
@@ -540,17 +516,17 @@
                                                 {['Sucesso Profissional', 'Dinheiro', 'Amor', 'Sexo'].map(item => (
                                                     <TextAreaField key={item} label={item + ":"} field={"filosofia_"+item} value={formData["filosofia_"+item]} onChange={handleInputChange} />
                                                 ))}
-                                                <TextAreaField label="O que era para você, ser uma boa (bom) menina (o)? Descreva." field="serBomMenino" value={formData.serBomMenino} onChange={handleInputChange} />
-                                                <TextAreaField label="Como você deveria agir, ou ser para ser amada (o)?" field="comoSerAmada" value={formData.comoSerAmada} onChange={handleInputChange} />
+                                                <TextAreaField label="O que era ser uma(o) boa(bom) menina(o)?" field="serBomMenino" value={formData.serBomMenino} onChange={handleInputChange} />
+                                                <TextAreaField label="Como deveria ser para ser amada(o)?" field="comoSerAmada" value={formData.comoSerAmada} onChange={handleInputChange} />
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <RadioField label="Possui irmãos?" field="possuiIrmaos" options={['Não', 'Sim']} value={formData.possuiIrmaos} onChange={handleInputChange} />
-                                                    <InputField label="Se sim, quantos?" field="qtdIrmaos" value={formData.qtdIrmaos} onChange={handleInputChange} />
+                                                    <InputField label="Quantos?" field="qtdIrmaos" value={formData.qtdIrmaos} onChange={handleInputChange} />
                                                 </div>
-                                                <TextAreaField label="Como é sua relação com eles?" field="relacaoIrmaos" value={formData.relacaoIrmaos} onChange={handleInputChange} />
-                                                <RadioField label="Você foi uma criança introvertida ou extrovertida?" field="perfilCrianca" options={['Introvertida', 'Extrovertida']} value={formData.perfilCrianca} onChange={handleInputChange} />
-                                                <TextAreaField label="Havia dificuldades de relacionamentos com os colegas do colégio? Se sim, cite-os." field="dificuldadeColegas" value={formData.dificuldadeColegas} onChange={handleInputChange} />
-                                                <TextAreaField label="Quais eram seus maiores medos na infância?" field="medosInfancia" value={formData.medosInfancia} onChange={handleInputChange} />
-                                                <TextAreaField label="Relate algum fato marcante em sua infância" field="fatoMarcanteInfancia" value={formData.fatoMarcanteInfancia} onChange={handleInputChange} />
+                                                <TextAreaField label="Relação com eles:" field="relacaoIrmaos" value={formData.relacaoIrmaos} onChange={handleInputChange} />
+                                                <RadioField label="Introvertida ou extrovertida?" field="perfilCrianca" options={['Introvertida', 'Extrovertida']} value={formData.perfilCrianca} onChange={handleInputChange} />
+                                                <TextAreaField label="Dificuldades no colégio:" field="dificuldadeColegas" value={formData.dificuldadeColegas} onChange={handleInputChange} />
+                                                <TextAreaField label="Maiores medos na infância:" field="medosInfancia" value={formData.medosInfancia} onChange={handleInputChange} />
+                                                <TextAreaField label="Fato marcante da infância:" field="fatoMarcanteInfancia" value={formData.fatoMarcanteInfancia} onChange={handleInputChange} />
                                             </div>
                                         </div>
                                     )}
@@ -561,42 +537,46 @@
                                             <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 04 – Emocional</h2>
                                             <TextAreaField label="Quais são seus maiores medos hoje?" field="medosHoje" value={formData.medosHoje} onChange={handleInputChange} />
                                             <TextAreaField label="O que você pensa a seu respeito?" field="pensaDeSi" value={formData.pensaDeSi} onChange={handleInputChange} />
-                                            <TextAreaField label="Como foi o seu primeiro relacionamento amoroso?" field="primeiraRelacaoAmor" value={formData.primeiraRelacaoAmor} onChange={handleInputChange} />
-                                            <RadioField label="Qual papel que mais caberia a você hoje na vida?" field="papelVida" options={['Vítima', 'Responsável']} value={formData.papelVida} onChange={handleInputChange} />
+                                            <TextAreaField label="Primeiro relacionamento amoroso?" field="primeiraRelacaoAmor" value={formData.primeiraRelacaoAmor} onChange={handleInputChange} />
+                                            <RadioField label="Papel na vida hoje?" field="papelVida" options={['Vítima', 'Responsável']} value={formData.papelVida} onChange={handleInputChange} />
                                             <InputField label="Qual o ganho secundário?" field="ganhoSecundario" value={formData.ganhoSecundario} onChange={handleInputChange} />
-                                            <TextAreaField label="Em quais situações você desempenha o papel de vítima?" field="situacaoVitima" value={formData.situacaoVitima} onChange={handleInputChange} />
-                                            <TextAreaField label="Em quais situações você desempenha o papel de responsável?" field="situacaoResponsavel" value={formData.situacaoResponsavel} onChange={handleInputChange} />
-                                            <RadioField label="Se considera vitoriosa(o) ou derrotada(o)?" field="vitoriaDerrota" options={['Vitoriosa(o)', 'Derrotada(o)']} value={formData.vitoriaDerrota} onChange={handleInputChange} />
-                                            <RadioField label="Nos relacionamentos e na vida, você prefere ser:" field="dominanteSubmisso" options={['Dominante', 'Submisso']} value={formData.dominanteSubmisso} onChange={handleInputChange} />
-                                            <TextAreaField label="Quem deve ser punido ou é o culpado por problemas que ocorrem com você?" field="quemCulpado" value={formData.quemCulpado} onChange={handleInputChange} />
+                                            <TextAreaField label="Situações como vítima:" field="situacaoVitima" value={formData.situacaoVitima} onChange={handleInputChange} />
+                                            <TextAreaField label="Situações como responsável:" field="situacaoResponsavel" value={formData.situacaoResponsavel} onChange={handleInputChange} />
+                                            <RadioField label="Vitoriosa(o) ou derrotada(o)?" field="vitoriaDerrota" options={['Vitoriosa(o)', 'Derrotada(o)']} value={formData.vitoriaDerrota} onChange={handleInputChange} />
+                                            <RadioField label="Dominante ou Submisso?" field="dominanteSubmisso" options={['Dominante', 'Submisso']} value={formData.dominanteSubmisso} onChange={handleInputChange} />
+                                            <TextAreaField label="Quem deve ser punido/culpado?" field="quemCulpado" value={formData.quemCulpado} onChange={handleInputChange} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <RadioField label="Sente raiva ou rancor de alguém?" field="raivaAlguem" options={['Não', 'Sim']} value={formData.raivaAlguem} onChange={handleInputChange} />
-                                                <InputField label="Se sim, de quem?" field="quemRaiva" value={formData.quemRaiva} onChange={handleInputChange} />
+                                                <RadioField label="Sente raiva de alguém?" field="raivaAlguem" options={['Não', 'Sim']} value={formData.raivaAlguem} onChange={handleInputChange} />
+                                                <InputField label="Quem?" field="quemRaiva" value={formData.quemRaiva} onChange={handleInputChange} />
                                             </div>
+                                            <RadioField label="Sente-se pressionada (o)?" field="pressionadaAtual" options={['Sim', 'Não']} value={formData.pressionadaAtual} onChange={handleInputChange} />
+                                            <TextAreaField label="Como?" field="comoPressionada" value={formData.comoPressionada} onChange={handleInputChange} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <RadioField label="Sente-se pressionada (o)?" field="pressionadaAtual" options={['Sim', 'Não']} value={formData.pressionadaAtual} onChange={handleInputChange} />
-                                                <TextAreaField label="De que maneira?" field="comoPressionada" value={formData.comoPressionada} onChange={handleInputChange} />
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <RadioField label="Você se acha controladora?" field="controladora" options={['Sim', 'Não']} value={formData.controladora} onChange={handleInputChange} />
-                                                <RadioField label="Sente-se inferior aos outros?" field="inferior" options={['Sim', 'Não']} value={formData.inferior} onChange={handleInputChange} />
+                                                <RadioField label="Pessoa controladora?" field="controladora" options={['Sim', 'Não']} value={formData.controladora} onChange={handleInputChange} />
+                                                <RadioField label="Inferior aos outros?" field="inferior" options={['Sim', 'Não']} value={formData.inferior} onChange={handleInputChange} />
                                             </div>
                                             <TextAreaField label="Por quê?" field="pqInferior" value={formData.pqInferior} onChange={handleInputChange} />
                                             <RadioField label="Duvida de sua capacidade?" field="duvidaCapacidade" options={['Sim', 'Não']} value={formData.duvidaCapacidade} onChange={handleInputChange} />
-                                            <RadioField label="Você é audaciosa (o) ou auto protetor(a)?" field="perfilAudacia" options={['Audaciosa(o)', 'Auto protetor(a)']} value={formData.perfilAudacia} onChange={handleInputChange} />
-                                            <RadioField label="Sente-se culpada(o)?" field="sentimentoCulpaQuest" options={['Sim', 'Não']} value={formData.sentimentoCulpaQuest} onChange={handleInputChange} />
+                                            <RadioField label="Audaciosa ou Auto protetora?" field="perfilAudacia" options={['Audaciosa(o)', 'Auto protetor(a)']} value={formData.perfilAudacia} onChange={handleInputChange} />
+                                            <RadioField label="Sente-se culpada?" field="sentimentoCulpaQuest" options={['Sim', 'Não']} value={formData.sentimentoCulpaQuest} onChange={handleInputChange} />
                                             <TextAreaField label="O que exatamente?" field="oqueCulpa" value={formData.oqueCulpa} onChange={handleInputChange} />
 
                                             <div className="mt-16 text-center border-t pt-12">
-                                                <h3 className="font-black text-slate-800 text-2xl mb-12 tracking-tighter uppercase italic">Intensidade de Sentimentos Atuais</h3>
+                                                <h3 className="font-black text-slate-800 text-2xl mb-12 tracking-tighter uppercase italic underline decoration-indigo-500">Sentimentos Atuais</h3>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
-                                                    {['Raiva', 'Medo de algo concreto', 'Medos vagos', 'Culpa', 'Revolta', 'Medo de perder o controle', 'Tristeza', 'Mágoa', 'Orgulho', 'Ódio', 'Egoísmo', 'Ansiedade', 'Intolerância', 'Submissão', 'Indecisão', 'Desespero', 'Desânimo', 'Covardia', 'Egocentrismo', 'Ciúme', 'Frustração', 'Nostalgia', 'Cansaço', 'Impaciência', 'Angústia', 'Timidez', 'Apatia', 'Ressentimento', 'Solidão', 'Autoritarismo'].map(s => (
+                                                    {[
+                                                        'Raiva', 'Medo de algo concreto', 'Medos vagos', 'Culpa', 'Revolta', 'Medo de perder o controle', 
+                                                        'Tristeza', 'Mágoa', 'Orgulho', 'Ódio', 'Egoísmo', 'Ansiedade', 'Intolerância', 'Submissão', 
+                                                        'Indecisão', 'Desespero', 'Desânimo', 'Covardia', 'Egocentrismo', 'Ciúme', 'Frustração', 
+                                                        'Nostalgia', 'Cansaço', 'Impaciência', 'Angústia', 'Timidez', 'Apatia', 'Ressentimento', 
+                                                        'Solidão', 'Autoritarismo'
+                                                    ].map(s => (
                                                         <IntensityField key={s} label={s} field={"sentimento_"+s} value={formData["sentimento_"+s]} onChange={handleInputChange} />
                                                     ))}
                                                 </div>
                                             </div>
 
-                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-indigo-700 shadow-indigo-100 uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
+                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-indigo-700 uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
                                         </div>
                                     )}
 
@@ -612,8 +592,8 @@
                         {step === 99 && (
                             <div className="bg-white p-20 rounded-[4rem] shadow-2xl text-center fade-in border border-slate-100">
                                 <div className="flex justify-center mb-10 text-emerald-500 shadow-inner rounded-full p-4 inline-block mx-auto"><Icons.Check /></div>
-                                <h2 className="text-5xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Enviado!</h2>
-                                <p className="text-slate-400 text-xl mb-12 font-medium max-w-sm mx-auto">As informações estão seguras. O terapeuta foi notificado pelo WhatsApp.</p>
+                                <h2 className="text-5xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Enviado com Sucesso!</h2>
+                                <p className="text-slate-400 text-xl mb-12 font-medium max-w-sm mx-auto">Sua ficha foi guardada. O terapeuta foi notificado pelo WhatsApp.</p>
                                 <button onClick={() => {setStep(0); setFormData({});}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">Novo Formulário</button>
                             </div>
                         )}
