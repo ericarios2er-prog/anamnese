@@ -267,7 +267,7 @@
                     await addDoc(colRef, { ...formData, createdAt: Date.now(), uid: user.uid });
                     const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
                     await deleteDoc(draftRef);
-                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese sistêmica profissional.\n\nNome: ${formData.nome}`);
+                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese sistêmica.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${WHATSAPP_NOTIFY}?text=${msg}`, '_blank');
                     setStep(99);
                 } catch (err) { alert("Erro ao enviar."); } 
@@ -373,13 +373,13 @@
             );
 
             if (view === 'login') return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 no-print">
                     <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border">
                         <Icons.Lock />
                         <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter mt-4 italic">Acesso Administrativo</h2>
                         <input type="password" border className="w-full p-4 border-2 border-slate-100 rounded-2xl mb-6 text-center text-2xl tracking-[0.5em] outline-none focus:border-indigo-500 font-black" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="••••" />
-                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">ENTRAR</button>
-                        <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase">Voltar</button>
+                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">ENTRAR NO PAINEL</button>
+                        <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase tracking-widest hover:text-indigo-600 transition-colors">Voltar</button>
                     </div>
                 </div>
             );
@@ -387,49 +387,70 @@
             if (view === 'admin') return (
                 <div className="min-h-screen bg-slate-50 flex flex-col">
                     <header className="bg-white border-b p-5 px-8 flex justify-between items-center sticky top-0 z-50 no-print shadow-sm">
-                        <h1 className="font-black text-xl text-slate-800 uppercase tracking-tighter italic">Gestão de Pacientes</h1>
-                        <button onClick={() => setView('form')} className="text-rose-500 font-black text-xs px-6 py-2 rounded-full bg-rose-50 border flex items-center gap-2">SAIR</button>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><Icons.Clipboard /></div>
+                            <h1 className="font-black text-xl md:text-2xl text-slate-800 tracking-tighter uppercase italic">Gestão de Pacientes</h1>
+                        </div>
+                        <button onClick={() => setView('form')} className="text-rose-500 font-black text-[10px] md:text-xs px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-rose-50 border flex items-center gap-2 hover:bg-rose-100 transition-all shadow-sm"><Icons.LogOut /> SAIR</button>
                     </header>
                     <div className="flex flex-1 overflow-hidden">
-                        <aside className="w-80 border-r bg-white overflow-y-auto hide-scrollbar no-print">
+                        {/* Sidebar: Escondida no mobile se houver um paciente selecionado */}
+                        <aside className={`w-full md:w-80 border-r bg-white overflow-y-auto hide-scrollbar no-print ${selectedResponse ? 'hidden md:block' : 'block'}`}>
+                            <div className="p-4 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b text-center italic">Registros Recentes</div>
                             {responses.map(res => (
                                 <button key={res.id} onClick={() => setSelectedResponse(res)} className={`w-full text-left p-6 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600 shadow-inner' : 'hover:bg-slate-50'}`}>
                                     <div className="font-bold text-slate-900 leading-tight uppercase text-xs">{res.nome || "Sem Nome"}</div>
-                                    <div className="text-[9px] text-slate-400 font-black mt-1 uppercase italic"><Icons.Calendar /> {new Date(res.createdAt).toLocaleDateString()}</div>
+                                    <div className="text-[9px] text-slate-400 font-black mt-1 uppercase italic flex items-center gap-1"><Icons.Calendar /> {new Date(res.createdAt).toLocaleDateString()}</div>
                                 </button>
                             ))}
                         </aside>
-                        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-100">
+                        
+                        {/* Main Content: Escondido no mobile se NÃO houver um paciente selecionado */}
+                        <main className={`flex-1 p-4 md:p-10 overflow-y-auto bg-slate-100 ${selectedResponse ? 'block' : 'hidden md:block'}`}>
                             {selectedResponse ? (
-                                <div className="print-container bg-white p-6 md:p-10 rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in">
-                                    <div className="flex justify-between items-center mb-6 border-b pb-4 no-print">
-                                        <h2 className="text-2xl font-black text-indigo-900 uppercase italic tracking-tighter">{selectedResponse.nome}</h2>
-                                        <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-black transition-all shadow-xl">
+                                <div className="print-container bg-white p-6 md:p-12 rounded-[2.5rem] md:rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in relative">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b pb-6 no-print gap-4">
+                                        <div className="w-full md:w-auto">
+                                            {/* Botão Voltar exclusivo para mobile */}
+                                            <button onClick={() => setSelectedResponse(null)} className="md:hidden text-indigo-600 font-black text-[10px] uppercase mb-4 flex items-center gap-1 hover:underline">
+                                                <Icons.Left /> Voltar para Lista
+                                            </button>
+                                            <h2 className="text-2xl font-black text-indigo-900 uppercase italic tracking-tighter">{selectedResponse.nome}</h2>
+                                        </div>
+                                        <button onClick={() => window.print()} className="w-full md:w-auto bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-black transition-all shadow-xl active:scale-95">
                                             <Icons.Printer /> IMPRIMIR PDF
                                         </button>
                                     </div>
                                     
                                     <div className="hidden print:block text-center mb-6 border-b-2 border-slate-900 pb-2">
-                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE SISTÊMICA</h1>
+                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE</h1>
                                         <div className="flex justify-between mt-2 text-[8px] font-bold text-slate-500 uppercase px-2">
                                             <span>Paciente: {selectedResponse.nome}</span>
                                             <span>{new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
                                         </div>
                                     </div>
 
-                                    {clinicalSections.map(section => (
-                                        <div key={section.title} className="section-break">
-                                            <h3 className="text-indigo-700">{section.title}</h3>
-                                            <div className="data-grid">
-                                                {section.fields.map(f => (
-                                                    <div key={f.key} className="data-item">
-                                                        <span className="label-text">{f.label}</span>
-                                                        <span className="value-text">{selectedResponse[f.key] || "—"}</span>
-                                                    </div>
-                                                ))}
+                                    {clinicalSections.map(section => {
+                                        const hasData = section.fields.some(f => selectedResponse[f.key]);
+                                        if (!hasData) return null;
+                                        return (
+                                            <div key={section.title} className="section-break mb-8">
+                                                <h3 className="text-[11px] font-black text-indigo-700 uppercase tracking-[0.2em] mb-4 border-l-4 border-indigo-600 pl-3 bg-indigo-50/50 py-2">{section.title}</h3>
+                                                <div className="data-grid grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                                    {section.fields.map(f => {
+                                                        const val = selectedResponse[f.key];
+                                                        if (!val || val === "Pouca/Nenhuma") return null;
+                                                        return (
+                                                            <div key={f.key} className="data-item flex flex-col border-b border-slate-50 pb-1">
+                                                                <span className="label-text text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">{f.label}</span>
+                                                                <span className="value-text text-[11px] text-slate-900 font-semibold leading-snug whitespace-pre-wrap">{val}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     <div className="section-break">
                                         <h3 className="text-indigo-700 uppercase">Sentimentos Atuais</h3>
@@ -451,7 +472,12 @@
                                         Confidencial © 2026
                                     </footer>
                                 </div>
-                            ) : <div className="h-full flex flex-col items-center justify-center text-slate-200 uppercase tracking-widest italic font-black">Selecione uma ficha na lateral</div>}
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-200 uppercase tracking-widest italic font-black">
+                                    <Icons.Clipboard />
+                                    <p className="mt-4 text-xs">Selecione um prontuário na lateral</p>
+                                </div>
+                            )}
                         </main>
                     </div>
                 </div>
@@ -461,7 +487,7 @@
                 <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 no-print">
                     <nav className="p-4 px-6 flex justify-between items-center glass border-b border-slate-100 sticky top-0 z-50">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg italic">A</div>
+                            <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 italic">A</div>
                             <span className="font-black text-slate-800 text-lg tracking-tighter uppercase italic">Formulário de Anamnese</span>
                         </div>
                         <button onClick={() => setView('login')} className="opacity-[0.02] hover:opacity-100 transition-all p-3 text-indigo-600 hover:bg-slate-50 rounded-full" title="Área Administrativa">
@@ -522,7 +548,7 @@
                                             <TextAreaField label="Como você se sente em seu relacionamento com sua parceira (o)?" field="sentimentoParceiro" value={formData.sentimentoParceiro} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente em sua casa, dentro do contexto familiar?" field="sentimentoCasa" value={formData.sentimentoCasa} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente no seu trabalho?" field="sentimentoTrabalho" value={formData.sentimentoTrabalho} onChange={handleInputChange} />
-                                            <div className="my-8 p-6 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
+                                            <div className="my-8 p-6 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-inner">
                                                 <p className="font-black text-indigo-900 text-[10px] uppercase mb-4 tracking-widest text-center italic">Pertencimento</p>
                                                 <RadioField label="Você se sente pertencendo ao Contexto Familiar?" field="pertenceFamiliar" options={['Sim', 'Não']} value={formData.pertenceFamiliar} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê? (Família)" field="pqFamiliar" value={formData.pqFamiliar} onChange={handleInputChange} />
@@ -546,7 +572,7 @@
                                             <h2 className="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
                                             {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
                                                 <div key={it} className="mb-8 p-6 border rounded-[2.5rem] bg-white shadow-sm">
-                                                    <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic">Em relação a {it}:</p>
+                                                    <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic underline decoration-indigo-200">Em relação a {it}:</p>
                                                     <RadioField label="Tipos de pensamentos:" field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} value={formData["mental_tipo_"+it]} onChange={handleInputChange} />
                                                     <TextAreaField label="Quais exatamente?" field={"mental_detalhe_"+it} value={formData["mental_detalhe_"+it]} onChange={handleInputChange} />
                                                 </div>
@@ -611,12 +637,12 @@
                                                 </div>
                                             </div>
 
-                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-indigo-700 uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
+                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-black uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
                                         </div>
                                     )}
 
                                     <div className="flex justify-between items-center mt-12 pt-10 border-t border-slate-50 no-print nav-footer">
-                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="btn-step-prev flex items-center justify-center gap-2 text-slate-400 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-[0.2em] transition-all p-5 rounded-3xl bg-white border">
+                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="btn-step-prev flex items-center justify-center gap-2 text-slate-400 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-[0.2em] transition-all p-5 rounded-3xl bg-white border active:bg-slate-50">
                                             <Icons.Left /> Anterior
                                         </button>
                                         <div className="step-indicator text-[10px] font-black uppercase tracking-[0.5em] text-slate-300 italic">Etapa {step + 1} / 5</div>
