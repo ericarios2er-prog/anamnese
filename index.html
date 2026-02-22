@@ -16,66 +16,33 @@
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Otimização de Impressão Ultra-Compacta */
+        /* Otimização de Impressão */
         @media print { 
             @page { margin: 10mm; }
             .no-print, nav, aside, button, .btn-step, .progress-bar, .nav-footer { display: none !important; } 
             body { background: white !important; padding: 0 !important; margin: 0 !important; visibility: hidden; }
             #root { visibility: hidden; }
-            
-            .print-container { 
-                visibility: visible !important;
-                display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important; 
-                margin: 0 !important; 
-                padding: 0 !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
+            .print-container { visibility: visible !important; display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
             .print-container * { visibility: visible !important; }
-            
-            .section-break { 
-                page-break-inside: avoid; 
-                margin-bottom: 8px; 
-                border-bottom: 1.5px solid #000; 
-                padding-bottom: 4px; 
-            }
-            h3 { 
-                font-size: 10pt !important; 
-                margin: 6px 0 !important; 
-                background: #f3f4f6 !important; 
-                padding: 2px 8px !important; 
-                -webkit-print-color-adjust: exact; 
-                border-left: 4px solid #4f46e5 !important;
-                color: #1e1b4b !important;
-                text-transform: uppercase;
-            }
-            .data-grid { 
-                display: grid !important; 
-                grid-template-columns: 1fr 1fr !important; 
-                gap: 2px 12px !important; 
-            }
-            .data-item { 
-                page-break-inside: avoid; 
-                border-bottom: 0.5px solid #eee; 
-                padding: 1px 0; 
-            }
-            .label-text { font-size: 6.5pt !important; color: #555 !important; text-transform: uppercase; font-weight: 800; display: block; line-height: 1; }
-            .value-text { font-size: 9pt !important; color: black !important; font-weight: 600; display: block; line-height: 1.1; margin-top: 1px; }
-            footer { font-size: 7pt !important; }
+            .section-break { page-break-inside: avoid; margin-bottom: 8px; border-bottom: 1.5px solid #000; padding-bottom: 4px; }
+            h3 { font-size: 10pt !important; background: #f3f4f6 !important; padding: 2px 8px !important; border-left: 4px solid #4f46e5 !important; text-transform: uppercase; -webkit-print-color-adjust: exact; }
+            .data-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 2px 12px !important; }
+            .data-item { border-bottom: 0.5px solid #eee; padding: 1px 0; }
+            .label-text { font-size: 6.5pt !important; color: #555 !important; text-transform: uppercase; font-weight: 800; display: block; }
+            .value-text { font-size: 9pt !important; color: black !important; font-weight: 600; display: block; line-height: 1.1; }
         }
 
-        /* Estilo Premium Mobile - Ajuste Fino */
+        /* Ajustes Mobile Finos */
         @media (max-width: 640px) {
-            .btn-step-next { width: 100% !important; order: 1; }
-            .btn-step-prev { width: 100% !important; order: 3; }
-            .step-indicator { order: 2; width: 100%; text-align: center; margin: 10px 0; }
+            .btn-step-next { width: 100% !important; order: 1; margin-bottom: 10px; height: 56px !important; }
+            .btn-step-prev { width: 100% !important; order: 3; height: 56px !important; }
+            .step-indicator { order: 2; width: 100%; text-align: center; margin: 15px 0; font-size: 12px !important; }
             .nav-footer { flex-direction: column !important; padding: 20px !important; }
-            .card-padding { padding: 20px !important; }
-            .input-premium { font-size: 16px !important; }
+            .card-main { padding: 20px !important; border-radius: 2rem !important; }
+            .input-premium { font-size: 16px !important; padding: 14px !important; }
+            .label-premium { font-size: 11px !important; }
+            .heading-premium { font-size: 24px !important; text-align: center; }
+            .sentimento-grid { grid-template-columns: 1fr !important; }
         }
     </style>
 </head>
@@ -120,7 +87,7 @@
 
         const InputField = memo(({ label, field, type = "text", placeholder = "", value, onChange }) => (
             <div className="mb-5">
-                <label className="block text-[10px] font-extrabold text-slate-700 uppercase tracking-widest mb-2 ml-1">{label}</label>
+                <label className="label-premium block text-[10px] font-extrabold text-slate-700 uppercase tracking-widest mb-2 ml-1">{label}</label>
                 <input 
                     type={type} 
                     placeholder={placeholder}
@@ -133,7 +100,7 @@
 
         const TextAreaField = memo(({ label, field, value, onChange }) => (
             <div className="mb-5">
-                <label className="block text-[10px] font-extrabold text-slate-700 uppercase tracking-widest mb-2 ml-1">{label}</label>
+                <label className="label-premium block text-[10px] font-extrabold text-slate-700 uppercase tracking-widest mb-2 ml-1">{label}</label>
                 <textarea 
                     className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none h-32 transition-all resize-none font-medium text-slate-800 text-sm input-premium shadow-sm"
                     value={value || ''}
@@ -144,7 +111,7 @@
 
         const RadioField = memo(({ label, field, options, value, onChange }) => (
             <div className="mb-6">
-                <label className="block text-[10px] font-extrabold text-slate-700 uppercase tracking-widest mb-2.5 ml-1">{label}</label>
+                <label className="label-premium block text-[10px] font-extrabold text-slate-700 uppercase tracking-widest mb-2.5 ml-1">{label}</label>
                 <div className="flex flex-wrap gap-2">
                     {options.map(opt => (
                         <button 
@@ -180,7 +147,7 @@
 
         const APP_ID = "meu-consultorio-568f0";
         const WHATSAPP_NOTIFY = "5571999466269"; 
-        const SIER_GROWTH_WA = "5571984420194"; // Número solicitado: 71984420194
+        const SIER_GROWTH_WA = "5571984420194";
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -269,7 +236,7 @@
                     await addDoc(colRef, { ...formData, createdAt: Date.now(), uid: user.uid });
                     const draftRef = doc(db, 'artifacts', APP_ID, 'users', user.uid, 'drafts', 'current');
                     await deleteDoc(draftRef);
-                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese.\n\nNome: ${formData.nome}`);
+                    const msg = window.encodeURIComponent(`Olá! Acabei de preencher o meu formulário de anamnese sistêmica.\n\nNome: ${formData.nome}`);
                     window.open(`https://wa.me/${WHATSAPP_NOTIFY}?text=${msg}`, '_blank');
                     setStep(99);
                 } catch (err) { alert("Erro ao enviar."); } 
@@ -327,8 +294,7 @@
                             { label: "Frustração Pais", key: "frustracao_Pais" }, { label: "Frustração Irmãos", key: "frustracao_Irmãos" },
                             { label: "Frustração Filhos", key: "frustracao_Filhos" }, { label: "Frustração Profissão", key: "frustracao_Profissão" },
                             { label: "Frustração Colégio", key: "frustracao_Colégio" }, { label: "Frustração Cônjuge", key: "frustracao_Cônjuge" },
-                            { label: "Frustração Identidade Sexual", key: "frustracao_Identidade Sexual" }, { label: "Frustração Vida Sexual", key: "frustracao_Vida Sexual" },
-                            { label: "Por quê? (Frustração)", key: "pqFrustracao" },
+                            { label: "Frustração Sexual", key: "frustracao_Vida Sexual" }, { label: "Por quê? (Frustração)", key: "pqFrustracao" },
                             { label: "Idade Sexualidade", key: "idadeSexualidade" }, { label: "Primeira Vez", key: "primeiraVez" },
                             { label: "Problemas Sexo", key: "problemaSexo" }, { label: "Realização Sexual", key: "realizacaoSexual" },
                             { label: "Importância Sexo", key: "importanciaSexo" },
@@ -371,13 +337,9 @@
                             { label: "Raiva Alguém", key: "quemRaiva" }, { label: "Inferior Outros", key: "inferior" },
                             { label: "O que Culpa", key: "oqueCulpa" }
                         ]
-                    },
-                    {
-                        title: "SENTIMENTOS ATUAIS",
-                        fields: feelingsKeys.map(s => ({ label: s, key: "sentimento_"+s }))
                     }
                 ];
-            }, [selectedResponse, feelingsKeys]);
+            }, [selectedResponse]);
 
             if (loadingDraft && view === 'form') return (
                 <div className="min-h-screen flex items-center justify-center bg-white"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
@@ -389,7 +351,7 @@
                         <Icons.Lock />
                         <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter mt-4 italic">Acesso Administrativo</h2>
                         <input type="password" border className="w-full p-4 border-2 border-slate-100 rounded-2xl mb-6 text-center text-2xl tracking-[0.5em] outline-none focus:border-indigo-500 font-black" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="••••" />
-                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all">ENTRAR NO PAINEL</button>
+                        <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">ENTRAR</button>
                         <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase tracking-widest hover:text-indigo-600 transition-colors">Voltar</button>
                     </div>
                 </div>
@@ -419,8 +381,8 @@
                             {selectedResponse ? (
                                 <div className="print-container bg-white p-6 md:p-12 rounded-[2.5rem] md:rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in relative">
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b pb-6 no-print gap-4">
-                                        <div className="w-full md:w-auto">
-                                            <button onClick={() => setSelectedResponse(null)} className="md:hidden text-indigo-600 font-black text-[10px] uppercase mb-4 flex items-center gap-1 hover:underline">
+                                        <div className="w-full md:w-auto text-center md:text-left">
+                                            <button onClick={() => setSelectedResponse(null)} className="md:hidden text-indigo-600 font-black text-[10px] uppercase mb-4 flex items-center justify-center gap-1 hover:underline mx-auto">
                                                 <Icons.Left /> Voltar para Lista
                                             </button>
                                             <h2 className="text-2xl font-black text-indigo-900 uppercase italic tracking-tighter">{selectedResponse.nome}</h2>
@@ -431,7 +393,7 @@
                                     </div>
                                     
                                     <div className="hidden print:block text-center mb-6 border-b-2 border-slate-900 pb-2">
-                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900"> ANAMNESE </h1>
+                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE SISTÊMICA</h1>
                                         <div className="flex justify-between mt-2 text-[8px] font-bold text-slate-500 uppercase px-2">
                                             <span>Paciente: {selectedResponse.nome}</span>
                                             <span>{new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
@@ -458,6 +420,23 @@
                                             </div>
                                         );
                                     })}
+
+                                    {/* SEÇÃO DE SENTIMENTOS ORGANIZADA NO ADMIN/PDF */}
+                                    <div className="section-break">
+                                        <h3 className="text-indigo-700 uppercase">Sentimentos Atuais</h3>
+                                        <div className="data-grid sentimento-grid grid grid-cols-1 md:grid-cols-2 gap-y-2">
+                                            {feelingsKeys.map(s => {
+                                                const val = selectedResponse["sentimento_"+s];
+                                                if (!val || val === "Pouca/Nenhuma") return null;
+                                                return (
+                                                    <div key={s} className="data-item flex flex-col border-b border-slate-50 pb-1">
+                                                        <span className="label-text text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">{s}</span>
+                                                        <span className="value-text text-[11px] text-indigo-600 font-bold">{val}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                     
                                     <footer className="mt-8 pt-4 border-t hidden print:block text-center uppercase tracking-widest font-black text-slate-300">
                                         Confidencial © 2026
@@ -486,19 +465,20 @@
                         </button>
                     </nav>
 
-                    <div className="max-w-4xl mx-auto mt-10 px-6">
+                    <div className="max-w-3xl mx-auto mt-6 px-4">
                         {step < 5 && (
-                            <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100 fade-in">
+                            <div className="bg-white rounded-[3rem] shadow-2xl shadow-indigo-100 overflow-hidden border border-indigo-50 fade-in">
                                 <div className="h-2 bg-slate-100 w-full overflow-hidden"><div className="bg-indigo-600 h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(79,70,229,0.3)]" style={{ width: `${(step + 1) * 20}%` }}></div></div>
-                                <div className="p-10 md:p-20 card-padding">
+                                <div className="p-6 md:p-12 card-main">
                                     {step === 0 && (
                                         <div className="fade-in">
-                                            <h2 className="text-3xl font-black text-slate-800 leading-none tracking-tight mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Dados Pessoais</h2>
+                                            <h2 className="heading-premium text-3xl font-black text-slate-800 leading-none tracking-tight mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Dados Pessoais</h2>
                                             <InputField label="Nome:" field="nome" value={formData.nome} onChange={handleInputChange} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
                                                 <InputField label="RG:" field="rg" value={formData.rg} onChange={handleInputChange} />
                                                 <InputField label="CPF:" field="cpf" value={formData.cpf} onChange={handleInputChange} />
                                             </div>
+                                            {/* Data de Nascimento Manual conforme solicitado */}
                                             <InputField label="Data de nascimento:" field="nascimento" placeholder="DD/MM/AAAA" value={formData.nascimento} onChange={handleInputChange} />
                                             <InputField label="Estado Civil:" field="estadoCivil" value={formData.estadoCivil} onChange={handleInputChange} />
                                             <InputField label="Endereço:" field="endereco" value={formData.endereco} onChange={handleInputChange} />
@@ -529,9 +509,10 @@
                                         </div>
                                     )}
 
+                                    {/* FASES 1-4 MANTIDAS INTEGRALMENTE */}
                                     {step === 1 && (
                                         <div className="fade-in">
-                                            <h2 className="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 01 – Vida Pessoal</h2>
+                                            <h2 className="heading-premium text-3xl font-black text-slate-800 leading-none tracking-tight mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 01 – Vida Pessoal</h2>
                                             <RadioField label="É casada (o), solteira (o) ou divorciada (o)?" field="statusCivilFase1" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)']} value={formData.statusCivilFase1} onChange={handleInputChange} />
                                             <TextAreaField label="Se é divorciada (o), por qual motivo e como se sente?" field="motivoDivorcio" value={formData.motivoDivorcio} onChange={handleInputChange} />
                                             <InputField label="Número de filhos:" field="numFilhos" value={formData.numFilhos} onChange={handleInputChange} />
@@ -539,8 +520,8 @@
                                             <TextAreaField label="Como você se sente em seu relacionamento com sua parceira (o)?" field="sentimentoParceiro" value={formData.sentimentoParceiro} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente em sua casa, dentro do contexto familiar?" field="sentimentoCasa" value={formData.sentimentoCasa} onChange={handleInputChange} />
                                             <TextAreaField label="Como você se sente no seu trabalho?" field="sentimentoTrabalho" value={formData.sentimentoTrabalho} onChange={handleInputChange} />
-                                            <div className="my-10 p-8 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-inner">
-                                                <p className="font-black text-indigo-900 text-[10px] uppercase mb-6 tracking-widest text-center italic">Sentimento de Pertencimento</p>
+                                            <div className="my-8 p-6 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-inner">
+                                                <p className="font-black text-indigo-900 text-[10px] uppercase mb-4 tracking-widest text-center italic">Pertencimento</p>
                                                 <RadioField label="Você se sente pertencendo ao Contexto Familiar?" field="pertenceFamiliar" options={['Sim', 'Não']} value={formData.pertenceFamiliar} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê? (Família)" field="pqFamiliar" value={formData.pqFamiliar} onChange={handleInputChange} />
                                                 <RadioField label="Você se sente pertencendo ao Contexto Social?" field="pertenceSocial" options={['Sim', 'Não']} value={formData.pertenceSocial} onChange={handleInputChange} />
@@ -548,8 +529,8 @@
                                                 <RadioField label="Você se sente pertencendo ao Contexto Religioso?" field="pertenceReligioso" options={['Sim', 'Não']} value={formData.pertenceReligioso} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê? (Religioso)" field="pqReligioso" value={formData.pqReligioso} onChange={handleInputChange} />
                                             </div>
-                                            <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter italic">Você sente frustração em relação a:</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10">
+                                            <p className="font-black text-slate-800 text-lg mb-6 border-b pb-2 uppercase tracking-tighter italic text-center md:text-left">Você sente frustração em relação a:</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                                                 {['Pais', 'Irmãos', 'Filhos', 'Profissão', 'Colégio', 'Cônjuge', 'Identidade Sexual', 'Vida Sexual'].map(item => (
                                                     <RadioField key={item} label={item + "?"} field={"frustracao_"+item} options={['Sim', 'Não']} value={formData["frustracao_"+item]} onChange={handleInputChange} />
                                                 ))}
@@ -560,10 +541,10 @@
 
                                     {step === 2 && (
                                         <div className="fade-in">
-                                            <h2 className="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
+                                            <h2 className="heading-premium text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
                                             {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
                                                 <div key={it} className="mb-10 p-8 border-2 border-slate-50 rounded-[2.5rem] bg-white shadow-sm hover:shadow-md transition-shadow">
-                                                    <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic underline decoration-indigo-200">Em relação a {it}:</p>
+                                                    <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic underline decoration-indigo-200 text-center md:text-left">Em relação a {it}:</p>
                                                     <RadioField label="Tipos de pensamentos:" field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} value={formData["mental_tipo_"+it]} onChange={handleInputChange} />
                                                     <TextAreaField label="Quais exatamente?" field={"mental_detalhe_"+it} value={formData["mental_detalhe_"+it]} onChange={handleInputChange} />
                                                 </div>
@@ -574,7 +555,7 @@
 
                                     {step === 3 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 03 – Infância</h2>
+                                            <h2 className="heading-premium text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 03 – Infância</h2>
                                             <RadioField label="Você foi criado pelos pais?" field="criadoPelosPais" options={['Sim', 'Não']} value={formData.criadoPelosPais} onChange={handleInputChange} />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                                                 <TextAreaField label="Como é sua relação com seu Pai?" field="relacaoPai" value={formData.relacaoPai} onChange={handleInputChange} />
@@ -596,7 +577,7 @@
 
                                     {step === 4 && (
                                         <div className="fade-in">
-                                            <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 04 – Emocional</h2>
+                                            <h2 className="heading-premium text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 04 – Emocional</h2>
                                             <TextAreaField label="Quais são seus maiores medos hoje?" field="medosHoje" value={formData.medosHoje} onChange={handleInputChange} />
                                             <TextAreaField label="O que você pensa a seu respeito?" field="pensaDeSi" value={formData.pensaDeSi} onChange={handleInputChange} />
                                             <TextAreaField label="Como foi o seu primeiro relacionamento amoroso?" field="primeiraRelacaoAmor" value={formData.primeiraRelacaoAmor} onChange={handleInputChange} />
@@ -644,15 +625,15 @@
                         {step === 99 && (
                             <div className="bg-white p-20 rounded-[4rem] shadow-2xl text-center fade-in border border-slate-100">
                                 <div className="flex justify-center mb-10 text-emerald-500 shadow-inner rounded-full p-4 inline-block mx-auto"><Icons.Check /></div>
-                                <h2 className="text-5xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Enviado com Sucesso!</h2>
-                                <p className="text-slate-400 text-xl mb-12 font-medium max-w-sm mx-auto uppercase italic">Obrigado! Suas informações foram salvas com total sigilo.</p>
+                                <h2 className="text-4xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic">Enviado com Sucesso!</h2>
+                                <p className="text-slate-400 text-xl mb-12 font-medium max-w-sm mx-auto uppercase italic text-center">Obrigado! Suas informações foram salvas com total sigilo.</p>
                                 <button onClick={() => {setStep(0); setFormData({}); window.location.reload();}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">Novo Formulário</button>
                             </div>
                         )}
                     </div>
                     <footer className="mt-16 text-center pb-12 no-print">
                         <div className="mb-1 text-[11px] font-bold text-slate-500">
-                            Tecnologia <a href={`https://wa.me/${SIER_GROWTH_WA}?text=${window.encodeURIComponent("vi esse formulário quero fazer o meu.")}`} target="_blank" className="text-orange-500 font-black hover:text-orange-600 transition-colors">Sier Growth</a>
+                            Tecnologia <a href={`https://wa.me/${SIER_GROWTH_WA}?text=${window.encodeURIComponent("Gostou da experiência deste formulário? Clique aqui e descubra como a Sier Growth pode digitalizar o seu atendimento.")}`} target="_blank" className="text-orange-500 font-black hover:text-orange-600 transition-colors">Sier Growth</a>
                         </div>
                         <div className="text-slate-200 text-[10px] font-black uppercase tracking-[0.5em] italic">
                             Confidencial &copy; 2026
