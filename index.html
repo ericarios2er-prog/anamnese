@@ -16,60 +16,63 @@
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Otimização de Impressão para Economia de Folhas */
+        /* Otimização de Impressão Ultra-Compacta */
         @media print { 
+            @page { margin: 10mm; }
             .no-print, nav, aside, button, .btn-step, .progress-bar { display: none !important; } 
-            body { background: white !important; padding: 0 !important; margin: 0 !important; visibility: hidden; }
-            #root { visibility: hidden; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            #root { display: block !important; }
             
             .print-container { 
-                visibility: visible !important;
                 display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
                 width: 100% !important; 
                 margin: 0 !important; 
-                padding: 5mm !important; 
+                padding: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
             }
-            .print-container * { visibility: visible !important; }
             
             .section-break { 
                 page-break-inside: avoid; 
-                margin-bottom: 8px; 
+                margin-bottom: 6px; 
                 border-bottom: 1.5px solid #000; 
-                padding-bottom: 4px; 
+                padding-bottom: 2px; 
             }
             h3 { 
                 font-size: 10pt !important; 
-                margin-top: 8px !important; 
-                background: #f3f4f6 !important; 
-                padding: 2px 8px !important; 
-                -webkit-print-color-adjust: exact; 
-                border-left: 3px solid #4f46e5 !important;
+                margin: 6px 0 !important; 
+                background: #f1f5f9 !important; 
+                padding: 2px 6px !important; 
+                border-left: 4px solid #4f46e5 !important;
                 color: #1e1b4b !important;
                 text-transform: uppercase;
+                -webkit-print-color-adjust: exact;
             }
             .data-grid { 
                 display: grid !important; 
                 grid-template-columns: 1fr 1fr !important; 
-                gap: 2px 12px !important; 
+                gap: 2px 10px !important; 
             }
             .data-item { 
                 page-break-inside: avoid; 
                 border-bottom: 0.5px solid #eee; 
                 padding: 1px 0; 
             }
-            .label-text { font-size: 6.5pt !important; color: #555 !important; text-transform: uppercase; font-weight: 800; display: block; line-height: 1; }
+            .label-text { font-size: 7pt !important; color: #555 !important; text-transform: uppercase; font-weight: 800; display: block; line-height: 1; }
             .value-text { font-size: 9pt !important; color: black !important; font-weight: 600; display: block; line-height: 1.1; margin-top: 1px; }
-            footer { font-size: 7pt !important; }
         }
 
+        /* Estilo Premium Mobile */
         @media (max-width: 640px) {
-            .btn-step { width: 100% !important; margin-bottom: 10px; }
-            .nav-container { flex-direction: column-reverse; gap: 10px; }
+            .btn-step { 
+                width: 100% !important; 
+                padding: 18px !important;
+                font-size: 14px !important;
+                border-radius: 20px !important;
+                margin-bottom: 8px;
+            }
+            .nav-container { flex-direction: column-reverse; gap: 8px; }
+            .input-premium { padding: 16px !important; font-size: 16px !important; }
         }
     </style>
 </head>
@@ -100,7 +103,6 @@
     <script type="text/babel">
         const { useState, useEffect, memo, useCallback, useMemo } = React;
 
-        // --- ÍCONES SVG ESTÁVEIS ---
         const Icons = {
             Lock: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>,
             Left: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>,
@@ -113,13 +115,12 @@
             Clipboard: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
         };
 
-        // --- COMPONENTES DE UI ---
         const InputField = memo(({ label, field, type = "text", value, onChange }) => (
             <div className="mb-4">
                 <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{label}</label>
                 <input 
                     type={type} 
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-800 text-sm"
+                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-800 text-sm input-premium"
                     value={value || ''}
                     onChange={e => onChange(field, e.target.value)}
                 />
@@ -130,7 +131,7 @@
             <div className="mb-4">
                 <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{label}</label>
                 <textarea 
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none h-32 transition-all resize-none font-medium text-slate-800 text-sm"
+                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none h-32 transition-all resize-none font-medium text-slate-800 text-sm input-premium"
                     value={value || ''}
                     onChange={e => onChange(field, e.target.value)}
                 />
@@ -146,7 +147,7 @@
                             key={opt}
                             type="button"
                             onClick={() => onChange(field, opt)}
-                            className={`flex-1 min-w-[120px] px-4 py-3 rounded-2xl text-xs font-bold border transition-all ${value === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}
+                            className={`flex-1 min-w-[120px] px-4 py-4 rounded-2xl text-xs font-black border transition-all ${value === opt ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}
                         >
                             {opt}
                         </button>
@@ -156,15 +157,15 @@
         ));
 
         const IntensityField = memo(({ label, field, value, onChange }) => (
-            <div className="mb-5 p-5 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                <label className="block text-xs font-black text-slate-600 mb-4 text-center uppercase tracking-tighter">{label}</label>
+            <div className="mb-4 p-4 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-sm">
+                <label className="block text-[10px] font-black text-slate-500 mb-3 text-center uppercase tracking-widest">{label}</label>
                 <div className="grid grid-cols-3 gap-2">
                     {["Muita Intensidade", "Média Intensidade", "Pouca/Nenhuma"].map(lvl => (
                         <button 
                             key={lvl}
                             type="button"
                             onClick={() => onChange(field, lvl)}
-                            className={`py-3 rounded-xl text-[8px] font-black uppercase tracking-tighter leading-tight transition-all border ${value === lvl ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg scale-[1.02]' : 'bg-white text-slate-400 border-slate-200'}`}
+                            className={`py-3 rounded-xl text-[7px] font-black uppercase tracking-tighter leading-tight transition-all border ${value === lvl ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'}`}
                         >
                             {lvl.split(' ')[0]}<br/>{lvl.split(' ')[1] || ""}
                         </button>
@@ -174,7 +175,7 @@
         ));
 
         const APP_ID = "meu-consultorio-568f0";
-        const WHATSAPP_NOTIFY = "5500000000000"; // INSIRA SEU NUMERO
+        const WHATSAPP_NOTIFY = "5500000000000"; 
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -191,7 +192,7 @@
 
             const { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, deleteDoc, signInAnonymously, onAuthStateChanged } = window.FB;
 
-            // --- AUTO SCROLL TO TOP ON STEP CHANGE ---
+            // Scroll suave para o topo ao trocar de etapa
             useEffect(() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }, [step]);
@@ -219,6 +220,7 @@
                 finally { setLoadingDraft(false); }
             };
 
+            // Autosave de Rascunho
             useEffect(() => {
                 if (!user || loadingDraft || step === 99) return;
                 const save = async () => {
@@ -282,6 +284,7 @@
                 }
             };
 
+            // Estrutura Espelho das Perguntas para Painel e PDF
             const clinicalSections = [
                 { 
                     title: "DADOS PESSOAIS", 
@@ -301,25 +304,26 @@
                 {
                     title: "FASE 01 - VIDA PESSOAL",
                     fields: [
-                        { label: "É casada (o), solteira (o) ou divorciada (o)?", key: "statusCivilFase1" }, { label: "Se é divorciada (o), por qual motivo e como se sente?", key: "motivoDivorcio" },
+                        { label: "Casado(o), solteiro(o) ou divorciado(o)?", key: "statusCivilFase1" }, { label: "Se divorciada(o), motivo e sentimento:", key: "motivoDivorcio" },
                         { label: "Número de filhos", key: "numFilhos" }, { label: "Relacionamento filhos", key: "relacaoFilhos" },
                         { label: "Sentimento parceiro", key: "sentimentoParceiro" }, { label: "Contexto familiar", key: "sentimentoCasa" },
                         { label: "Sentimento trabalho", key: "sentimentoTrabalho" },
-                        { label: "Pertencendo ao Contexto Familiar?", key: "pertenceFamiliar" }, { label: "Por quê? (Família)", key: "pqFamiliar" },
-                        { label: "Pertencendo ao Contexto Social?", key: "pertenceSocial" }, { label: "Por quê? (Social)", key: "pqSocial" },
-                        { label: "Pertencendo ao Contexto Religioso?", key: "pertenceReligioso" }, { label: "Por quê? (Religioso)", key: "pqReligioso" },
+                        { label: "Pertence contexto familiar?", key: "pertenceFamiliar" }, { label: "Por quê? (Família)", key: "pqFamiliar" },
+                        { label: "Pertence contexto social?", key: "pertenceSocial" }, { label: "Por quê? (Social)", key: "pqSocial" },
+                        { label: "Pertence contexto religioso?", key: "pertenceReligioso" }, { label: "Por quê? (Religioso)", key: "pqReligioso" },
                         { label: "Frustração Pais", key: "frustracao_Pais" }, { label: "Frustração Irmãos", key: "frustracao_Irmãos" },
                         { label: "Frustração Filhos", key: "frustracao_Filhos" }, { label: "Frustração Profissão", key: "frustracao_Profissão" },
                         { label: "Frustração Colégio", key: "frustracao_Colégio" }, { label: "Frustração Cônjuge", key: "frustracao_Cônjuge" },
-                        { label: "Frustração Sexual", key: "frustracao_Vida Sexual" }, { label: "Por quê? (Frustração)", key: "pqFrustracao" },
+                        { label: "Frustração Identidade Sexual", key: "frustracao_Identidade Sexual" }, { label: "Frustração Vida Sexual", key: "frustracao_Vida Sexual" },
+                        { label: "Por quê? (Frustração)", key: "pqFrustracao" },
                         { label: "Idade Sexualidade", key: "idadeSexualidade" }, { label: "Primeira Vez", key: "primeiraVez" },
                         { label: "Problemas Sexo", key: "problemaSexo" }, { label: "Realização Sexual", key: "realizacaoSexual" },
                         { label: "Importância Sexo", key: "importanciaSexo" },
                         { label: "Trauma", key: "quest_Algum trauma" }, { label: "Detalhe Trauma", key: "detalhe_Algum trauma" },
                         { label: "Fobia", key: "quest_Alguma fobia" }, { label: "Detalhe Fobia", key: "detalhe_Alguma fobia" },
                         { label: "Stress", key: "nivelStress" }, { label: "Medicação", key: "tomaMedicao" },
-                        { label: "Considera Feliz", key: "consideraFeliz" }, { label: "Mudar em Si", key: "mudariaEmSi" },
-                        { label: "Definição Vida", key: "definicaoVida" }
+                        { label: "Crença Repete", key: "crençaRepete" }, { label: "Considera Feliz", key: "consideraFeliz" }, 
+                        { label: "O que mudaria", key: "mudariaEmSi" }, { label: "Definição Vida", key: "definicaoVida" }
                     ]
                 },
                 {
@@ -337,10 +341,11 @@
                     fields: [
                         { label: "Criado Pais", key: "criadoPelosPais" }, { label: "Relação Pai", key: "relacaoPai" },
                         { label: "Relação Mãe", key: "relacaoMae" }, { label: "Pais Agressivos", key: "paisAgressivos" },
-                        { label: "Relacionamento Pais", key: "relacaoPaisQualidade" }, { label: "Repete Hoje", key: "repeticaoRelacao" },
-                        { label: "Não Repetir", key: "naoRepetirRelacao" }, { label: "Crença Adquirida", key: "crençaAdquirida" },
-                        { label: "Tristeza Passado", key: "tristezaPassado" }, { label: "Medo Criança", key: "medoCrianca" },
-                        { label: "Rebeldia", key: "rebeldiaAdolescencia" }, { label: "Ser bom menina(o)", key: "serBomMenino" },
+                        { label: "Mais Bravo", key: "maisBravo" }, { label: "Relacionamento Pais", key: "relacaoPaisQualidade" },
+                        { label: "Semelhança Hoje", key: "repeticaoRelacao" }, { label: "Não Repetir", key: "naoRepetirRelacao" },
+                        { label: "Crença Adquirida", key: "crençaAdquirida" }, { label: "Tristeza Passado", key: "tristezaPassado" },
+                        { label: "Medo Criança", key: "medoCrianca" }, { label: "Rebeldia", key: "rebeldiaAdolescencia" },
+                        { label: "Dificuldade Progenitor", key: "dificuldadeProgenitor" }, { label: "Ser bom menina(o)", key: "serBomMenino" },
                         { label: "Como ser amada", key: "comoSerAmada" }, { label: "Fato Marcante", key: "fatoMarcanteInfancia" }
                     ]
                 },
@@ -372,7 +377,7 @@
                 <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
                     <div className="bg-white p-10 rounded-[3rem] shadow-2xl w-full max-w-sm text-center border">
                         <Icons.Lock />
-                        <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter mt-4 italic">Acesso Restrito</h2>
+                        <h2 className="text-2xl font-black text-slate-800 mb-6 uppercase tracking-tighter mt-4 italic">Acesso Administrativo</h2>
                         <input type="password" border className="w-full p-4 border-2 border-slate-100 rounded-2xl mb-6 text-center text-2xl tracking-[0.5em] outline-none focus:border-indigo-500 font-black" value={adminPass} onChange={e => setAdminPass(e.target.value)} placeholder="••••" />
                         <button onClick={handleLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg">ENTRAR</button>
                         <button onClick={() => setView('form')} className="mt-6 text-slate-300 text-xs font-black uppercase">Voltar</button>
@@ -383,7 +388,7 @@
             if (view === 'admin') return (
                 <div className="min-h-screen bg-slate-50 flex flex-col">
                     <header className="bg-white border-b p-5 px-8 flex justify-between items-center sticky top-0 z-50 no-print shadow-sm">
-                        <h1 className="font-black text-xl text-slate-800 uppercase tracking-tighter italic">Painel Administrativo</h1>
+                        <h1 className="font-black text-xl text-slate-800 uppercase tracking-tighter italic">Painel do Terapeuta</h1>
                         <button onClick={() => setView('form')} className="text-rose-500 font-black text-xs px-6 py-2 rounded-full bg-rose-50 border flex items-center gap-2">SAIR</button>
                     </header>
                     <div className="flex flex-1 overflow-hidden">
@@ -397,7 +402,7 @@
                         </aside>
                         <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-100">
                             {selectedResponse ? (
-                                <div className="print-container bg-white p-6 md:p-10 rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in">
+                                <div className="print-container bg-white p-6 md:p-12 rounded-[3rem] shadow-xl max-w-5xl mx-auto border fade-in">
                                     <div className="flex justify-between items-center mb-6 border-b pb-4 no-print">
                                         <h2 className="text-2xl font-black text-indigo-900 uppercase italic tracking-tighter">{selectedResponse.nome}</h2>
                                         <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-xs flex items-center gap-2 hover:bg-black transition-all">
@@ -406,7 +411,7 @@
                                     </div>
                                     
                                     <div className="hidden print:block text-center mb-6 border-b-2 border-slate-900 pb-2">
-                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE</h1>
+                                        <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">PRONTUÁRIO DE ANAMNESE SISTÊMICA</h1>
                                         <div className="flex justify-between mt-2 text-[8px] font-bold text-slate-500 uppercase">
                                             <span>Paciente: {selectedResponse.nome}</span>
                                             <span>{new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
@@ -447,7 +452,7 @@
                                         Confidencial © 2026
                                     </footer>
                                 </div>
-                            ) : <div className="h-full flex flex-col items-center justify-center text-slate-200 uppercase tracking-widest italic font-black">Selecione uma ficha</div>}
+                            ) : <div className="h-full flex flex-col items-center justify-center text-slate-200 uppercase tracking-widest italic font-black">Selecione uma ficha na lateral</div>}
                         </main>
                     </div>
                 </div>
@@ -460,7 +465,7 @@
                             <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg italic">A</div>
                             <span className="font-black text-slate-800 text-lg tracking-tighter uppercase italic">Formulário de Anamnese</span>
                         </div>
-                        <button onClick={() => setView('login')} className="opacity-[0.05] hover:opacity-100 transition-all p-3 text-indigo-600" title="Área Restrita">
+                        <button onClick={() => setView('login')} className="opacity-[0.02] hover:opacity-100 transition-all p-3 text-indigo-600" title="Área Restrita">
                             <Icons.Lock />
                         </button>
                     </nav>
@@ -468,7 +473,7 @@
                     <div className="max-w-3xl mx-auto mt-6 px-4">
                         {step < 5 && (
                             <div className="bg-white rounded-[3rem] shadow-2xl shadow-indigo-100 overflow-hidden border border-indigo-50 fade-in">
-                                <div className="h-2 bg-slate-100 w-full overflow-hidden"><div className="bg-indigo-600 h-full transition-all duration-1000 ease-out" style={{ width: `${(step + 1) * 20}%` }}></div></div>
+                                <div className="h-2 bg-slate-100 w-full overflow-hidden"><div className="bg-indigo-600 h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(79,70,229,0.3)]" style={{ width: `${(step + 1) * 20}%` }}></div></div>
                                 <div className="p-6 md:p-14">
                                     {step === 0 && (
                                         <div className="fade-in">
@@ -540,14 +545,14 @@
                                             <div className="space-y-6 mt-6 border-t pt-6">
                                                 <InputField label="Iniciou sua sexualidade com que idade?" field="idadeSexualidade" value={formData.idadeSexualidade} onChange={handleInputChange} />
                                                 <RadioField label="Como foi sua primeira vez?" field="primeiraVez" options={['Traumática', 'Normal', 'Boa', 'Satisfatória']} value={formData.primeiraVez} onChange={handleInputChange} />
-                                                <TextAreaField label="Tem tido algum problem em relação ao sexo?" field="problemaSexo" value={formData.problemaSexo} onChange={handleInputChange} />
+                                                <TextAreaField label="Tem tido algum problema em relação ao sexo?" field="problemaSexo" value={formData.problemaSexo} onChange={handleInputChange} />
                                                 <RadioField label="Atualmente sempre se realiza nas relações sexuais?" field="realizacaoSexual" options={['Sim', 'Não']} value={formData.realizacaoSexual} onChange={handleInputChange} />
                                                 <RadioField label="O sexo para você é algo:" field="importanciaSexo" options={['Importante', 'Sem importância', 'Muito importante']} value={formData.importanciaSexo} onChange={handleInputChange} />
                                             </div>
 
                                             <div className="space-y-6 mt-6">
                                                 {['Algum trauma', 'Alguma fobia', 'Tem medo de alguma coisa', 'Usa drogas', 'Dores de cabeça', 'Insônia', 'Tem ideias suicidas', 'Usa bebidas alcoólicas', 'É fumante'].map(q => (
-                                                    <div key={q} className="p-6 border rounded-[2rem] bg-slate-50 group hover:border-indigo-200 transition-colors">
+                                                    <div key={q} className="p-6 border rounded-[2.5rem] bg-slate-50 group hover:border-indigo-200 transition-colors shadow-sm">
                                                         <RadioField label={q + "?"} field={"quest_"+q} options={['Sim', 'Não']} value={formData["quest_"+q]} onChange={handleInputChange} />
                                                         <InputField label="Detalhes / Qual / Frequência:" field={"detalhe_"+q} value={formData["detalhe_"+q]} onChange={handleInputChange} />
                                                     </div>
@@ -563,7 +568,7 @@
                                                 <RadioField label="Se sim, foi diagnosticada (o)?" field="foiDiagnostico" options={['Sim', 'Não']} value={formData.foiDiagnostico} onChange={handleInputChange} />
                                                 <InputField label="Qual a quantidade de amigos que você tem?" field="qtdAmigos" value={formData.qtdAmigos} onChange={handleInputChange} />
                                                 <InputField label="Qual seu passatempo preferido?" field="passatempo" value={formData.passatempo} onChange={handleInputChange} />
-                                                <TextAreaField label="Qual a principal a crença que as pessoas possuem em relação a você que mais se repete?" field="crençaRepete" value={formData.crençaRepete} onChange={handleInputChange} />
+                                                <TextAreaField label="Qual a principal a crença que as pessoas possuem em relação a você?" field="crençaRepete" value={formData.crençaRepete} onChange={handleInputChange} />
                                                 <RadioField label="Você se considera feliz?" field="consideraFeliz" options={['Sim', 'Não']} value={formData.consideraFeliz} onChange={handleInputChange} />
                                                 <TextAreaField label="Por quê? (Feliz)" field="pqFeliz" value={formData.pqFeliz} onChange={handleInputChange} />
                                                 <TextAreaField label="Se você pudesse mudar alguma coisa em você, no seu modo de ser, ou agir, o que mudaria?" field="mudariaEmSi" value={formData.mudariaEmSi} onChange={handleInputChange} />
@@ -576,7 +581,7 @@
                                         <div className="fade-in">
                                             <h2 className="text-3xl font-black text-slate-800 mb-8 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 02 – Mental</h2>
                                             {['Si mesma (o)', 'Aparência física', 'Competência profissional', 'Vida emocional', 'Vida sexual', 'Passado', 'Futuro'].map(it => (
-                                                <div key={it} className="mb-8 p-6 border rounded-[2rem] bg-white shadow-sm">
+                                                <div key={it} className="mb-8 p-6 border rounded-[2.5rem] bg-white shadow-sm">
                                                     <p className="font-black text-slate-800 mb-4 uppercase tracking-tighter italic">Em relação a {it}:</p>
                                                     <RadioField label="Tipos de pensamentos:" field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} value={formData["mental_tipo_"+it]} onChange={handleInputChange} />
                                                     <TextAreaField label="Quais exatamente?" field={"mental_detalhe_"+it} value={formData["mental_detalhe_"+it]} onChange={handleInputChange} />
@@ -601,7 +606,7 @@
                                             <RadioField label="Usavam bebidas ou drogas?" field="paisDrogas" options={['Sim', 'Não']} value={formData.paisDrogas} onChange={handleInputChange} />
                                             <RadioField label="Como descreveria o relacionamento entre seus pais?" field="relacaoPaisQualidade" options={['Excelente', 'Muito Bom', 'Bom', 'Regular', 'Péssimo']} value={formData.relacaoPaisQualidade} onChange={handleInputChange} />
                                             <TextAreaField label="Por quê? (Relacionamento Pais)" field="pqRelacaoPais" value={formData.pqRelacaoPais} onChange={handleInputChange} />
-                                            <TextAreaField label="Quais os aspectos deste relacionamento que se assemelham, ou se repetem em sua vida hoje?" field="repeticaoRelacao" value={formData.repeticaoRelacao} onChange={handleInputChange} />
+                                            <TextAreaField label="Quais os aspectos deste relacionamento que se repetem em sua vida hoje?" field="repeticaoRelacao" value={formData.repeticaoRelacao} onChange={handleInputChange} />
                                             <TextAreaField label="Quais as características deste relacionamento, que você se mantém determinada (o) a não repetir?" field="naoRepetirRelacao" value={formData.naoRepetirRelacao} onChange={handleInputChange} />
                                             <TextAreaField label="Por quê? (Não repetir)" field="pqNaoRepetir" value={formData.pqNaoRepetir} onChange={handleInputChange} />
                                             <TextAreaField label="Qual a crença que você adquiriu em relação a relacionamentos?" field="crençaAdquirida" value={formData.crençaAdquirida} onChange={handleInputChange} />
@@ -614,11 +619,11 @@
                                                 <InputField label="Quando criança tinha medo de que?" field="medoCrianca" value={formData.medoCrianca} onChange={handleInputChange} />
                                                 <RadioField label="Dormia com a luz acesa ou apagada?" field="luzSono" options={['Acesa', 'Apagada']} value={formData.luzSono} onChange={handleInputChange} />
                                                 <RadioField label="Como foi sua adolescência?" field="qualidadeAdolescencia" options={['Ruim', 'Boa', 'Ótima']} value={formData.qualidadeAdolescencia} onChange={handleInputChange} />
-                                                <RadioField label="Teve fase de rebeldia?" field="rebeldiaAdolescencia" options={['Sim', 'Não']} value={formData.rebeldiaAdolescencia} onChange={handleInputChange} />
+                                                <RadioField label="Teve fase de rebeldia na adolescência?" field="rebeldiaAdolescencia" options={['Sim', 'Não']} value={formData.rebeldiaAdolescencia} onChange={handleInputChange} />
                                                 <RadioField label="Maior dificuldade de relacionamento com qual progenitor?" field="dificuldadeProgenitor" options={['Pai', 'Mãe']} value={formData.dificuldadeProgenitor} onChange={handleInputChange} />
                                             </div>
 
-                                            <div className="mt-8 p-8 bg-slate-50 rounded-[2rem] border border-indigo-50">
+                                            <div className="mt-8 p-8 bg-slate-50 rounded-[2.5rem] border border-indigo-50 shadow-inner">
                                                 <p className="font-black text-slate-800 mb-6 uppercase tracking-widest text-center italic">Filosofia Familiar</p>
                                                 {['Sucesso Profissional', 'Dinheiro', 'Amor', 'Sexo'].map(item => (
                                                     <TextAreaField key={item} label={item + ":"} field={"filosofia_"+item} value={formData["filosofia_"+item]} onChange={handleInputChange} />
@@ -671,7 +676,7 @@
 
                                             <div className="mt-12 text-center border-t pt-10">
                                                 <h3 className="font-black text-slate-800 text-2xl mb-10 tracking-tighter uppercase italic underline decoration-indigo-500">Intensidade de Sentimentos Atuais</h3>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
                                                     {[
                                                         'Raiva', 'Medo de algo concreto', 'Medos vagos', 'Culpa', 'Revolta', 'Medo de perder o controle', 
                                                         'Tristeza', 'Mágoa', 'Orgulho', 'Ódio', 'Egoísmo', 'Ansiedade', 'Intolerância', 'Submissão', 
@@ -684,14 +689,14 @@
                                                 </div>
                                             </div>
 
-                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-indigo-600 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-indigo-700 uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
+                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-black uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
                                         </div>
                                     )}
 
                                     <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-50 no-print nav-container">
-                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="btn-step flex items-center justify-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-widest transition-all p-4 rounded-2xl bg-white border"><Icons.Left /> Anterior</button>
-                                        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-200 italic">Etapa {step + 1} / 5</div>
-                                        {step < 4 && <button onClick={() => setStep(s => s + 1)} className="btn-step bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-xl hover:bg-black text-xs tracking-widest flex items-center justify-center gap-2 uppercase active:scale-95 transition-all">PRÓXIMO <Icons.Right /></button>}
+                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="btn-step flex items-center justify-center gap-2 text-slate-400 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-widest transition-all p-5 rounded-3xl bg-white border"><Icons.Left /> Anterior</button>
+                                        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 italic">Etapa {step + 1} / 5</div>
+                                        {step < 4 && <button onClick={() => setStep(s => s + 1)} className="btn-step bg-slate-900 text-white px-12 py-5 rounded-3xl font-black shadow-xl hover:bg-black text-sm tracking-widest flex items-center justify-center gap-2 uppercase active:scale-95 transition-all">PRÓXIMO <Icons.Right /></button>}
                                     </div>
                                 </div>
                             </div>
@@ -701,8 +706,8 @@
                             <div className="bg-white p-20 rounded-[4rem] shadow-2xl text-center fade-in border border-indigo-50">
                                 <div className="flex justify-center mb-10"><Icons.Check /></div>
                                 <h2 className="text-4xl font-black text-slate-900 mb-6 uppercase tracking-tighter italic text-emerald-600">Enviado com Sucesso!</h2>
-                                <p className="text-slate-400 text-lg mb-10 font-medium">O seu terapeuta foi notificado pelo WhatsApp. Suas informações estão seguras.</p>
-                                <button onClick={() => {setStep(0); setFormData({}); window.location.reload();}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">Início / Novo Formulário</button>
+                                <p className="text-slate-400 text-lg mb-10 font-medium">As suas informações foram salvas. O terapeuta foi notificado pelo WhatsApp.</p>
+                                <button onClick={() => {setStep(0); setFormData({}); window.location.reload();}} className="bg-indigo-600 text-white px-12 py-5 rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-all active:scale-95 uppercase tracking-widest">Início / Novo Formulário</button>
                             </div>
                         )}
                     </div>
