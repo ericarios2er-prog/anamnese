@@ -3,109 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ficha de Anamnese - Consultório</title>
-    <!-- Tailwind CSS para design responsivo -->
+    <title>Prontuário de Anamnese Confidencial</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase SDK (Versão Compat) para maior estabilidade em scripts simples -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #f9fafb; }
-        .glass-card { 
-            background: white; 
-            border-radius: 1rem; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-        }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            ring: 2px;
-            ring-color: #3b82f6;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
-<body class="min-h-screen py-8 px-4">
+<body>
+    <div id="root"></div>
 
-    <div class="max-w-3xl mx-auto glass-card p-6 md:p-12">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">Ficha de Anamnese</h1>
-            <p class="mt-3 text-lg text-gray-600">Preencha as informações abaixo para iniciarmos sua consulta.</p>
-        </header>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        <form id="anamneseForm" class="space-y-8">
-            <!-- Seção: Identificação -->
-            <section>
-                <div class="flex items-center mb-4">
-                    <div class="bg-blue-600 h-6 w-1 mr-3 rounded-full"></div>
-                    <h2 class="text-xl font-bold text-gray-800">Identificação Pessoal</h2>
-                </div>
-                
-                <div class="grid grid-cols-1 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Completo</label>
-                        <input type="text" name="nome" required placeholder="Digite seu nome" 
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Data de Nascimento</label>
-                            <input type="date" name="nascimento" required 
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">WhatsApp / Telefone</label>
-                            <input type="tel" name="telefone" required placeholder="(00) 00000-0000" 
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all">
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Seção: Saúde -->
-            <section class="pt-4">
-                <div class="flex items-center mb-4">
-                    <div class="bg-blue-600 h-6 w-1 mr-3 rounded-full"></div>
-                    <h2 class="text-xl font-bold text-gray-800">Histórico de Saúde</h2>
-                </div>
-
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Alergias conhecidas?</label>
-                        <textarea name="alergias" rows="2" placeholder="Ex: Medicamentos, alimentos, etc."
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Uso de medicamentos contínuos?</label>
-                        <textarea name="medicamentos" rows="2" placeholder="Liste os medicamentos que toma atualmente."
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Qual o motivo principal da consulta?</label>
-                        <textarea name="queixa_principal" required rows="4" placeholder="Descreva brevemente o que você está sentindo ou seu objetivo."
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Feedback visual -->
-            <div id="messageBox" class="hidden p-4 rounded-lg text-center text-sm font-bold animate-pulse"></div>
-
-            <button type="submit" id="submitBtn" 
-                    class="w-full bg-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-blue-700 transform hover:scale-[1.02] transition-all shadow-lg">
-                Enviar Informações
-            </button>
-        </form>
-
-        <footer class="mt-12 text-center text-gray-400 text-xs">
-            &copy; 2024 Ficha Digital de Anamnese - Privado e Seguro
-        </footer>
-    </div>
-
-    <script>
-        // CONFIGURAÇÃO FIREBASE FORNECIDA
         const firebaseConfig = {
             apiKey: "AIzaSyA0JuzYmLbJ9HCPXpfxGWQX19NsZenXO0s",
             authDomain: "meu-consultorio-568f0.firebaseapp.com",
@@ -115,50 +34,406 @@
             appId: "1:121957844615:web:bdd21d6b2507acfb451a22",
         };
 
-        // Inicializa o Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // Disponibiliza para o React via window
+        window.FB = { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, signInAnonymously, onAuthStateChanged };
+    </script>
 
-        const form = document.getElementById('anamneseForm');
-        const btn = document.getElementById('submitBtn');
-        const msg = document.getElementById('messageBox');
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { 
+            Lock, ClipboardList, LogOut, Send, ChevronLeft, ChevronRight, 
+            CheckCircle2, User, Heart, Brain, Baby, Smile, Phone 
+        } = lucide;
 
-        // Função para mostrar mensagens
-        function showMsg(text, type) {
-            msg.innerText = text;
-            msg.className = `p-4 rounded-lg text-center text-sm font-bold block ${
-                type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`;
-        }
+        // --- CONFIGURAÇÃO ---
+        const TERAPEUTA_WHATSAPP = "5571999466269"; // COLOQUE SEU NÚMERO AQUI (DDI + DDD + NUMERO)
+        const APP_ID = "meu-consultorio-568f0";
 
-        // Evento de Envio
-        form.onsubmit = async (e) => {
-            e.preventDefault();
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('form'); // 'form' | 'login' | 'admin'
+            const [step, setStep] = useState(0);
+            const [formData, setFormData] = useState({});
+            const [responses, setResponses] = useState([]);
+            const [selectedResponse, setSelectedResponse] = useState(null);
+            const [adminPasswordInput, setAdminPasswordInput] = useState('');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [dbAdminPassword, setDbAdminPassword] = useState(null);
+            const [isFirstRun, setIsFirstRun] = useState(false);
+
+            const { db, auth, collection, addDoc, doc, getDoc, setDoc, onSnapshot, signInAnonymously, onAuthStateChanged } = window.FB;
+
+            useEffect(() => {
+                signInAnonymously(auth).catch(console.error);
+                onAuthStateChanged(auth, setUser);
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const checkAdmin = async () => {
+                    const configRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'config', 'admin');
+                    const snap = await getDoc(configRef);
+                    if (snap.exists()) {
+                        setDbAdminPassword(snap.data().password);
+                        setIsFirstRun(false);
+                    } else {
+                        setIsFirstRun(true);
+                    }
+                };
+                checkAdmin();
+            }, [user, view]);
+
+            useEffect(() => {
+                if (!user || view !== 'admin') return;
+                const q = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
+                return onSnapshot(q, (snapshot) => {
+                    const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    docs.sort((a, b) => b.createdAt - a.createdAt);
+                    setResponses(docs);
+                });
+            }, [user, view]);
+
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const submitForm = async () => {
+                if (!formData.nome) return alert("Por favor, preencha pelo menos o seu nome.");
+                setIsSubmitting(true);
+                try {
+                    const colRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'responses');
+                    await addDoc(colRef, {
+                        ...formData,
+                        createdAt: Date.now(),
+                        uid: user.uid
+                    });
+                    
+                    // Enviar para WhatsApp
+                    const msg = window.encodeURIComponent(`Olá! Acabei de finalizar o preenchimento da minha ficha de anamnese.\n\nNome: ${formData.nome}`);
+                    window.open(`https://wa.me/${TERAPEUTA_WHATSAPP}?text=${msg}`, '_blank');
+                    
+                    setStep(99);
+                } catch (err) {
+                    alert("Erro ao salvar. Verifique sua conexão.");
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            const handleAdminLogin = async () => {
+                if (isFirstRun) {
+                    if (adminPasswordInput.length < 4) return alert("A senha deve ter no mínimo 4 dígitos.");
+                    const configRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'config', 'admin');
+                    await setDoc(configRef, { password: adminPasswordInput });
+                    setDbAdminPassword(adminPasswordInput);
+                    setIsFirstRun(false);
+                    setView('admin');
+                } else {
+                    if (adminPasswordInput === dbAdminPassword) setView('admin');
+                    else alert("Acesso negado.");
+                }
+            };
+
+            // Componentes UI
+            const FieldLabel = ({ children }) => <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{children}</label>;
             
-            // Bloqueia o botão para evitar cliques duplos
-            btn.disabled = true;
-            btn.innerText = "Processando e Enviando...";
-            msg.classList.add('hidden');
+            const Input = ({ label, field, type = "text", placeholder = "" }) => (
+                <div className="mb-4">
+                    <FieldLabel>{label}</FieldLabel>
+                    <input 
+                        type={type} 
+                        placeholder={placeholder}
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        value={formData[field] || ''}
+                        onChange={e => handleInputChange(field, e.target.value)}
+                    />
+                </div>
+            );
 
-            // Captura os dados
-            const formData = new FormData(form);
-            const dados = Object.fromEntries(formData.entries());
-            dados.data_envio = new Date().toLocaleString('pt-BR');
+            const Radio = ({ label, field, options }) => (
+                <div className="mb-6">
+                    <FieldLabel>{label}</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                        {options.map(opt => (
+                            <button 
+                                key={opt}
+                                onClick={() => handleInputChange(field, opt)}
+                                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${formData[field] === opt ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'}`}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
 
-            try {
-                // Salva na coleção 'fichas'
-                await db.collection('fichas').add(dados);
+            const Intensity = ({ label, field }) => (
+                <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <FieldLabel>{label}</FieldLabel>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                        {["Pouca", "Média", "Muita"].map(lvl => (
+                            <button 
+                                key={lvl}
+                                onClick={() => handleInputChange(field, lvl + " Intensidade")}
+                                className={`py-2 rounded-lg text-[10px] font-black uppercase transition-all ${formData[field] === (lvl + " Intensidade") ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200'}`}
+                            >
+                                {lvl}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
 
-                showMsg("✅ Ficha enviada com sucesso! Você já pode fechar esta página.", "success");
-                btn.innerText = "Enviado com Sucesso!";
-                form.reset();
-            } catch (error) {
-                console.error("Erro Firebase:", error);
-                showMsg("❌ Erro ao enviar. Verifique se o Firebase está configurado corretamente.", "error");
-                btn.disabled = false;
-                btn.innerText = "Tentar Novamente";
-            }
+            if (view === 'login') return (
+                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-100">
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
+                        <Lock className="mx-auto mb-4 text-indigo-600" size={40} />
+                        <h2 className="text-2xl font-black text-slate-800 mb-2">{isFirstRun ? "Configurar Admin" : "Área Reservada"}</h2>
+                        <input 
+                            type="password" 
+                            className="w-full p-4 border rounded-2xl mb-4 text-center text-xl tracking-widest outline-none focus:ring-2 focus:ring-indigo-500" 
+                            placeholder="••••"
+                            value={adminPasswordInput}
+                            onChange={e => setAdminPasswordInput(e.target.value)}
+                        />
+                        <button onClick={handleAdminLogin} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all">ACESSAR</button>
+                        <button onClick={() => setView('form')} className="mt-4 text-slate-400 text-sm font-bold">Voltar</button>
+                    </div>
+                </div>
+            );
+
+            if (view === 'admin') return (
+                <div className="min-h-screen bg-slate-50 flex flex-col">
+                    <header className="bg-white border-b p-4 px-8 flex justify-between items-center sticky top-0 z-50">
+                        <div className="flex items-center gap-2">
+                            <ClipboardList className="text-indigo-600" />
+                            <h1 className="font-black text-xl text-slate-800 tracking-tighter">Gestão de Pacientes</h1>
+                        </div>
+                        <button onClick={() => setView('form')} className="text-rose-500 font-bold flex items-center gap-1 hover:bg-rose-50 px-4 py-2 rounded-full transition-all">
+                            <LogOut size={18}/> SAIR
+                        </button>
+                    </header>
+                    <div className="flex flex-1 overflow-hidden">
+                        <aside className="w-80 border-r bg-white overflow-y-auto hide-scrollbar">
+                            {responses.map(res => (
+                                <button 
+                                    key={res.id} 
+                                    onClick={() => setSelectedResponse(res)}
+                                    className={`w-full text-left p-6 border-b transition-all ${selectedResponse?.id === res.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600 shadow-inner' : 'hover:bg-slate-50'}`}
+                                >
+                                    <div className="font-bold text-slate-900">{res.nome}</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">{new Date(res.createdAt).toLocaleDateString()} às {new Date(res.createdAt).toLocaleTimeString()}</div>
+                                </button>
+                            ))}
+                        </aside>
+                        <main className="flex-1 p-10 overflow-y-auto">
+                            {selectedResponse ? (
+                                <div className="bg-white p-12 rounded-[3rem] shadow-xl border border-slate-100 max-w-4xl mx-auto">
+                                    <h2 className="text-4xl font-black text-slate-900 mb-8 border-b pb-6">{selectedResponse.nome}</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                                        {Object.entries(selectedResponse).map(([k, v]) => {
+                                            if (['id', 'createdAt', 'uid'].includes(k)) return null;
+                                            return (
+                                                <div key={k} className="border-b border-slate-50 pb-2">
+                                                    <span className="text-[10px] font-black text-indigo-400 uppercase block mb-1">{k.replace(/_/g, ' ')}</span>
+                                                    <div className="text-slate-700 font-medium whitespace-pre-wrap">{v || "—"}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-300">
+                                    <ClipboardList size={80} className="mb-4 opacity-20" />
+                                    <p className="font-bold text-xl">Selecione uma ficha para ler</p>
+                                </div>
+                            )}
+                        </main>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <nav className="p-4 px-6 flex justify-between items-center sticky top-0 z-50 glass no-print">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black">A</div>
+                            <span className="font-black text-slate-800 text-lg tracking-tighter uppercase">Anamnese Sistémica</span>
+                        </div>
+                        {/* Cadeado discreto */}
+                        <button onClick={() => setView('login')} className="opacity-5 hover:opacity-100 transition-opacity p-2">
+                            <Lock size={16}/>
+                        </button>
+                    </nav>
+
+                    <div className="max-w-3xl mx-auto mt-6 px-4">
+                        {step < 5 && (
+                            <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
+                                <div className="h-1.5 bg-slate-100 flex">
+                                    <div 
+                                        className="bg-indigo-600 h-full transition-all duration-700 shadow-[0_0_10px_rgba(79,70,229,0.5)]" 
+                                        style={{ width: `${(step + 1) * 20}%` }}
+                                    ></div>
+                                </div>
+                                
+                                <div className="p-8 md:p-14">
+                                    {step === 0 && (
+                                        <div className="animate-in fade-in duration-500">
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="bg-indigo-100 text-indigo-600 p-3 rounded-2xl"><User/></div>
+                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Dados de Identificação</h2>
+                                            </div>
+                                            <Input label="Nome Completo:" field="nome" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input label="RG:" field="rg" />
+                                                <Input label="CPF:" field="cpf" />
+                                            </div>
+                                            <Input label="Data de Nascimento:" field="nascimento" type="date" />
+                                            <Input label="Morada/Endereço:" field="endereco" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <Input label="Telemóvel/Zap:" field="whatsapp" />
+                                                <Input label="E-mail:" field="email" type="email" />
+                                            </div>
+                                            <TextArea label="Queixa Principal – O que te trouxe até aqui?" field="queixaPrincipal" />
+                                        </div>
+                                    )}
+
+                                    {step === 1 && (
+                                        <div className="animate-in slide-in-from-right-4 duration-500">
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="bg-rose-100 text-rose-600 p-3 rounded-2xl"><Heart/></div>
+                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 01 – Vida Pessoal</h2>
+                                            </div>
+                                            <Radio label="Estado Civil Atual:" field="estadoCivilVida" options={['Casada (o)', 'Solteira (o)', 'Divorciada (o)', 'Viúva (o)']} />
+                                            <TextArea label="Como é o seu relacionamento com os seus filhos?" field="relacaoFilhos" />
+                                            <TextArea label="Como você se sente em sua casa?" field="sentimentoCasa" />
+                                            
+                                            <div className="mt-8 mb-4 p-6 bg-indigo-50 rounded-[2rem] border border-indigo-100">
+                                                <p className="font-black text-indigo-900 text-xs uppercase mb-4 tracking-widest">Sentimento de Pertencimento</p>
+                                                <Radio label="Sente que pertence à sua família?" field="pertenceFamilia" options={['Sim', 'Não']} />
+                                                <Radio label="Sente que pertence à sociedade?" field="pertenceSociedade" options={['Sim', 'Não']} />
+                                            </div>
+
+                                            <div className="space-y-4 border-t pt-6">
+                                                {['Algum trauma', 'Alguma fobia', 'Uso de drogas', 'Ideias suicidas'].map(it => (
+                                                    <div key={it} className="p-4 border border-slate-100 rounded-2xl bg-slate-50">
+                                                        <Radio label={it + "?"} field={it} options={['Sim', 'Não']} />
+                                                        <Input label="Detalhes:" field={it + "_detalhe"} />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {step === 2 && (
+                                        <div className="animate-in slide-in-from-right-4 duration-500">
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="bg-cyan-100 text-cyan-600 p-3 rounded-2xl"><Brain/></div>
+                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 02 – Mental</h2>
+                                            </div>
+                                            <p className="text-sm text-slate-400 mb-6 italic">Quais pensamentos alimenta em relação a:</p>
+                                            {['Si mesma (o)', 'Passado', 'Futuro'].map(it => (
+                                                <div key={it} className="mb-6 p-6 border rounded-3xl bg-white shadow-sm">
+                                                    <Radio label={it} field={"mental_tipo_"+it} options={['Positivos', 'Negativos']} />
+                                                    <TextArea label="Especifique os pensamentos:" field={"mental_detalhe_"+it} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {step === 3 && (
+                                        <div className="animate-in slide-in-from-right-4 duration-500">
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="bg-amber-100 text-amber-600 p-3 rounded-2xl"><Baby/></div>
+                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 03 – Infância</h2>
+                                            </div>
+                                            <TextArea label="Como era sua relação com seu Pai?" field="relacaoPai" />
+                                            <TextArea label="Como era sua relação com sua Mãe?" field="relacaoMae" />
+                                            <Radio label="Seus pais eram agressivos?" field="paisAgressivos" options={['Sim', 'Não']} />
+                                            <Radio label="Como era o relacionamento entre eles?" field="relacaoPaisStatus" options={['Excelente', 'Bom', 'Regular', 'Péssimo']} />
+                                            <TextArea label="O que dessa relação se repete na sua vida hoje?" field="repeticaoVida" />
+                                            <TextArea label="O que te faz sentir tristeza ao relembrar do passado?" field="tristezaPassado" />
+                                        </div>
+                                    )}
+
+                                    {step === 4 && (
+                                        <div className="animate-in slide-in-from-right-4 duration-500">
+                                            <div className="flex items-center gap-3 mb-8">
+                                                <div className="bg-emerald-100 text-emerald-600 p-3 rounded-2xl"><Smile/></div>
+                                                <h2 className="text-3xl font-black text-slate-900 leading-none">Fase 04 – Emocional</h2>
+                                            </div>
+                                            <TextArea label="Quais são seus maiores medos hoje?" field="medosHoje" />
+                                            <Radio label="Como se vê na vida?" field="papelVida" options={['Vítima das circunstâncias', 'Responsável pelo caminho']} />
+                                            <Radio label="Sente raiva ou rancor de alguém?" field="raivaAlguem" options={['Sim', 'Não']} />
+                                            
+                                            <div className="mt-12 mb-8 text-center border-t pt-8">
+                                                <h3 className="font-black text-slate-800 text-xl mb-6">INTENSIDADE DE SENTIMENTOS</h3>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                                                    {['Ansiedade', 'Medo', 'Culpa', 'Tristeza', 'Revolta', 'Desânimo'].map(s => (
+                                                        <Intensity key={s} label={s} field={"sentimento_"+s} />
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <button 
+                                                onClick={submitForm} 
+                                                disabled={isSubmitting}
+                                                className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-2xl hover:bg-indigo-700 shadow-xl transition-all flex items-center justify-center gap-3 disabled:bg-slate-300"
+                                            >
+                                                {isSubmitting ? "ENVIANDO..." : <><Send size={24}/> FINALIZAR FICHA</>}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Navegação de Passos */}
+                                    <div className="flex justify-between items-center mt-12 pt-8 border-t border-slate-100 no-print">
+                                        <button 
+                                            onClick={() => { window.scrollTo(0,0); setStep(s => s - 1); }} 
+                                            disabled={step === 0}
+                                            className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 transition-all uppercase tracking-widest text-sm"
+                                        >
+                                            <ChevronLeft size={20}/> Anterior
+                                        </button>
+                                        {step < 4 && (
+                                            <button 
+                                                onClick={() => { window.scrollTo(0,0); setStep(s => s + 1); }}
+                                                className="flex items-center gap-2 bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-lg hover:bg-indigo-700 transition-all"
+                                            >
+                                                PRÓXIMO <ChevronRight size={20}/>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 99 && (
+                            <div className="bg-white p-20 rounded-[3rem] shadow-2xl text-center border border-slate-100 animate-in zoom-in duration-500">
+                                <div className="flex justify-center mb-8 text-emerald-500">
+                                    <CheckCircle2 size={100}/>
+                                </div>
+                                <h2 className="text-4xl font-black text-slate-900 mb-4 leading-tight">Envio Concluído!</h2>
+                                <p className="text-slate-500 text-lg mb-10 max-w-sm mx-auto">Sua ficha foi enviada com total sigilo. O seu terapeuta foi notificado pelo WhatsApp.</p>
+                                <button onClick={() => {setStep(0); setFormData({});}} className="bg-indigo-600 text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all">
+                                    Novo Formulário
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <footer className="mt-12 text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.4em] pb-10">
+                        Sistema Clínico Confidencial &copy; 2024
+                    </footer>
+                </div>
+            );
         };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
