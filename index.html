@@ -16,6 +16,7 @@
         .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
+        /* Otimização de Impressão Ultra-Compacta */
         @media print { 
             @page { margin: 10mm; }
             .no-print, nav, aside, button, .btn-step, .progress-bar { display: none !important; } 
@@ -30,7 +31,7 @@
                 top: 0 !important;
                 width: 100% !important; 
                 margin: 0 !important; 
-                padding: 5mm !important; 
+                padding: 0 !important;
                 box-shadow: none !important;
                 border: none !important;
             }
@@ -48,7 +49,7 @@
                 background: #f3f4f6 !important; 
                 padding: 2px 8px !important; 
                 -webkit-print-color-adjust: exact; 
-                border-left: 3px solid #4f46e5 !important;
+                border-left: 4px solid #4f46e5 !important;
                 color: #1e1b4b !important;
                 text-transform: uppercase;
             }
@@ -179,7 +180,7 @@
         ));
 
         const APP_ID = "meu-consultorio-568f0";
-        const WHATSAPP_NOTIFY = "5500000000000"; 
+        const WHATSAPP_NOTIFY = "5571999466269"; 
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -286,6 +287,15 @@
                 }
             };
 
+            // ESTRUTURA ESPELHO PARA O ADMIN E PDF
+            const feelingsKeys = [
+                'Raiva', 'Medo de algo concreto', 'Medos vagos', 'Culpa', 'Revolta', 'Medo de perder o controle', 
+                'Tristeza', 'Mágoa', 'Orgulho', 'Ódio', 'Egoísmo', 'Ansiedade', 'Intolerância', 'Submissão', 
+                'Indecisão', 'Desespero', 'Desânimo', 'Covardia', 'Egocentrismo', 'Ciúme', 'Frustração', 
+                'Nostalgia', 'Cansaço', 'Impaciência', 'Angústia', 'Timidez', 'Apatia', 'Ressentimento', 
+                'Solidão', 'Autoritarismo'
+            ];
+
             const getAllSections = useCallback(() => {
                 if (!selectedResponse) return [];
                 
@@ -345,7 +355,7 @@
                             { label: "Criado Pais", key: "criadoPelosPais" }, { label: "Relação Pai", key: "relacaoPai" },
                             { label: "Relação Mãe", key: "relacaoMae" }, { label: "Pais Agressivos", key: "paisAgressivos" },
                             { label: "Mais Bravo", key: "maisBravo" }, { label: "Relacionamento Pais", key: "relacaoPaisQualidade" },
-                            { label: "Repete Hoje", key: "repeticaoRelacao" }, { label: "Não Repetir", key: "naoRepetirRelacao" },
+                            { label: "Semelhança Hoje", key: "repeticaoRelacao" }, { label: "Não Repetir", key: "naoRepetirRelacao" },
                             { label: "Crença Adquirida", key: "crençaAdquirida" }, { label: "Tristeza Passado", key: "tristezaPassado" },
                             { label: "Medo Criança", key: "medoCrianca" }, { label: "Rebeldia", key: "rebeldiaAdolescencia" },
                             { label: "Ser bom menina(o)", key: "serBomMenino" }, { label: "Como ser amada", key: "comoSerAmada" },
@@ -364,10 +374,10 @@
                     },
                     {
                         title: "SENTIMENTOS ATUAIS",
-                        fields: Object.keys(selectedResponse).filter(k => k.startsWith('sentimento_')).map(k => ({ label: k.replace('sentimento_', ''), key: k }))
+                        fields: feelingsKeys.map(s => ({ label: s, key: "sentimento_"+s }))
                     }
                 ];
-            }, [selectedResponse]);
+            }, [selectedResponse, feelingsKeys]);
 
             if (loadingDraft && view === 'form') return (
                 <div className="min-h-screen flex items-center justify-center bg-white"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
@@ -429,12 +439,16 @@
                                             <div key={section.title} className="section-break mb-6">
                                                 <h3 className="text-[11px] font-black text-indigo-700 uppercase tracking-[0.2em] mb-4 border-l-4 border-indigo-600 pl-3 bg-indigo-50/50 py-1.5">{section.title}</h3>
                                                 <div className="data-grid grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3">
-                                                    {section.fields.map(f => (
-                                                        <div key={f.key} className="data-item flex flex-col">
-                                                            <span className="label-text text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{f.label}</span>
-                                                            <span className="value-text text-[11px] text-slate-900 font-semibold leading-snug whitespace-pre-wrap">{selectedResponse[f.key] || "—"}</span>
-                                                        </div>
-                                                    ))}
+                                                    {section.fields.map(f => {
+                                                        const val = selectedResponse[f.key];
+                                                        if (!val || val === "Pouca/Nenhuma") return null;
+                                                        return (
+                                                            <div key={f.key} className="data-item flex flex-col">
+                                                                <span className="label-text text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{f.label}</span>
+                                                                <span className="value-text text-[11px] text-slate-900 font-semibold leading-snug whitespace-pre-wrap">{val}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         );
@@ -455,7 +469,7 @@
             );
 
             return (
-                <div className="min-h-screen bg-white font-sans text-slate-900 pb-20 no-print">
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 no-print">
                     <nav className="p-5 px-8 flex justify-between items-center sticky top-0 z-50 glass border-b border-slate-100">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-indigo-100 italic">A</div>
@@ -511,7 +525,7 @@
                                         </div>
                                     )}
 
-                                    {/* FASES 1 A 4 SEGUEM A MESMA LÓGICA */}
+                                    {/* FASES 1 A 4 */}
                                     {step === 1 && (
                                         <div className="fade-in">
                                             <h2 className="text-4xl font-black text-slate-900 leading-none tracking-tight mb-12 uppercase italic underline decoration-indigo-500 underline-offset-8">Fase 01 – Vida Pessoal</h2>
@@ -616,9 +630,9 @@
                                     )}
 
                                     <div className="flex justify-between items-center mt-16 pt-10 border-t border-slate-50 no-print">
-                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-[0.2em] transition-all"><Icons.ChevronLeft /> Anterior</button>
+                                        <button onClick={() => setStep(s => s - 1)} disabled={step === 0} className="flex items-center gap-2 text-slate-300 font-black hover:text-indigo-600 disabled:opacity-0 uppercase text-xs tracking-[0.2em] transition-all"><Icons.Left /> Anterior</button>
                                         <div className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-200 italic">Etapa {step + 1} / 5</div>
-                                        {step < 4 && <button onClick={() => setStep(s => s + 1)} className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-xl hover:bg-black text-xs tracking-[0.2em] transition-all flex items-center gap-2 uppercase active:scale-95">PRÓXIMO <Icons.ChevronRight /></button>}
+                                        {step < 4 && <button onClick={() => setStep(s => s + 1)} className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black shadow-xl hover:bg-black text-xs tracking-[0.2em] transition-all flex items-center gap-2 uppercase active:scale-95">PRÓXIMO <Icons.Right /></button>}
                                     </div>
                                 </div>
                             </div>
