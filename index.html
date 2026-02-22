@@ -362,7 +362,7 @@
                     <header className="bg-white border-b p-5 px-8 flex justify-between items-center sticky top-0 z-50 no-print shadow-sm">
                         <div className="flex items-center gap-3">
                             <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><Icons.Clipboard /></div>
-                            <h1 className="font-black text-xl md:text-2xl text-slate-800 tracking-tighter uppercase italic">Gestão de Pacientes</h1>
+                            <h1 className="font-black text-xl md:text-2xl text-slate-800 tracking-tighter uppercase italic">Gestão de Clientes </h1>
                         </div>
                         <button onClick={() => setView('form')} className="text-rose-500 font-black text-[10px] md:text-xs px-4 md:px-6 py-2 md:py-2.5 rounded-full bg-rose-50 border flex items-center gap-2 hover:bg-rose-100 transition-all shadow-sm"><Icons.LogOut /> SAIR</button>
                     </header>
@@ -395,7 +395,7 @@
                                     <div className="hidden print:block text-center mb-6 border-b-2 border-slate-900 pb-2">
                                         <h1 className="text-lg font-black uppercase tracking-widest text-slate-900">ANAMNESE</h1>
                                         <div className="flex justify-between mt-2 text-[8px] font-bold text-slate-500 uppercase px-2">
-                                            <span>Paciente: {selectedResponse.nome}</span>
+                                            <span>Cliente: {selectedResponse.nome}</span>
                                             <span>{new Date(selectedResponse.createdAt).toLocaleString('pt-BR')}</span>
                                         </div>
                                     </div>
@@ -603,7 +603,7 @@
                                                 </div>
                                             </div>
 
-                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-black uppercase tracking-widest"><Icons.Send /> FINALIZAR CONSULTA</button>
+                                            <button onClick={submitForm} disabled={isSubmitting} className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-2xl shadow-2xl active:scale-95 transition-all mt-10 hover:bg-black uppercase tracking-widest"><Icons.Send /> FINALIZAR ANAMNESE</button>
                                         </div>
                                     )}
 
@@ -648,4 +648,5 @@
     </script>
 </body>
 </html>
+
 
